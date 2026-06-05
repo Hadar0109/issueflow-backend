@@ -28,7 +28,7 @@ Create a complete initial analysis report that includes:
 The assignment requirements are the source of truth.
 Do not assume functionality that is not written there.
 
-### 2. Specification Prompt
+### 2. Constitution Prompt
 /speckit.constitution
 
 Create the project constitution for IssueFlow.
@@ -65,6 +65,38 @@ The constitution should establish principles such as:
 * Separation of concerns and testable business logic.
 * Documentation requirements (run.md and prompts.md).
 * AI-generated work must be documented.
+
+### 2. Specification Prompt
+/speckit.specify
+
+Create the complete IssueFlow specification.
+
+Use:
+
+* the assignment requirements
+* the README API contract
+* the approved Constitution
+* all previous analysis and decision reviews
+
+Do not implement anything.
+
+The specification should fully define:
+
+* Functional requirements
+* User stories
+* Acceptance criteria
+* Business rules
+* Validation rules
+* Authorization rules
+* Data requirements
+* Non-functional requirements
+* Error scenarios
+* Edge cases
+* Assumptions
+
+Resolve all remaining ambiguities through explicitly documented assumptions.
+
+The specification should be complete enough that a plan and task list can later be generated without introducing new behavior or making additional product decisions.
 
 ### 3. Planning Prompt
 [paste the /speckit.plan prompt]
