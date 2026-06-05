@@ -40,7 +40,20 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Verify compliance with `.specify/memory/constitution.md` (IssueFlow v1.0.0):
+
+- [ ] **Source of truth**: Plan traces requirements to `docs/TDP_issueflow_requirements.pdf`
+- [ ] **API contract**: Endpoints align with `README.md` tables; no undocumented routes
+- [ ] **Workflow**: Spec exists; this plan derives from `spec.md` (no skip justification)
+- [ ] **Stack**: NestJS modules, PostgreSQL, TypeORM migrations (no synchronize-only prod path)
+- [ ] **Architecture**: Thin controllers; business rules in testable services
+- [ ] **Security**: JWT-by-default; secrets in env; upload validation strategy defined
+- [ ] **Validation/errors**: Global validation pipe and consistent error filter planned
+- [ ] **Audit**: Append-only audit approach for state-changing actions defined
+- [ ] **Soft delete**: Ticket/project lifecycle matches assignment (no hard-delete API)
+- [ ] **Testing**: Unit, integration, and e2e coverage mapped to spec acceptance criteria
+- [ ] **Documentation**: `run.md` and `prompts.md` deliverables accounted for in tasks
+- [ ] **Scope**: No features beyond assignment unless documented assumptions in spec
 
 ## Project Structure
 
