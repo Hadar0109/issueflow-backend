@@ -117,7 +117,7 @@ RevokedToken (if deny-list chosen).
 
 ### IC-08: Technology stack (assignment + constitution)
 
-- NestJS **10** (provided skeleton baseline per `package.json`); no v11 upgrade planned
+- **NestJS 11** (assignment PDF §1 mandate); provided skeleton ships NestJS 10 — upgrade during Foundation/setup phase
 - TypeScript, PostgreSQL, TypeORM, JWT
 - Docker Compose for local database
 
@@ -202,4 +202,3 @@ See `research.md` IC-10 and `plan.md`.
 | 2026-06-06 | Pre-task review: IC-11 → Option E (`ProjectMember`); stack → NestJS 11; cascade audit; validation/e2e matrix in plan.md |
 | 2026-06-06 | IC-11 revised: strict `ProjectMember` source of truth, bootstrap removed; username no-whitespace rule added |
 | 2026-06-06 | PD-10: user hard delete with cascade (Option 1); retain audit `performedBy`; remove comment-author delete block |
-| 2026-06-06 | IC-08 baseline aligned to NestJS 10 skeleton; removed v11 upgrade from plan/research |

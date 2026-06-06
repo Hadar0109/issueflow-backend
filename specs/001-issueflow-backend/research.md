@@ -2,7 +2,7 @@
 
 **Feature**: `001-issueflow-backend`  
 **Date**: 2026-06-06  
-**Last Updated**: 2026-06-06 (IC-08 NestJS 10 skeleton baseline)
+**Last Updated**: 2026-06-06 (IC-11 strict linkage; username validation)
 **Purpose**: Resolve planning unknowns from `plan.md` Technical Context and
 `decision-log.md` implementation candidates (IC-*).
 
@@ -219,19 +219,21 @@ escalate **one priority level** per ticket per evaluation cycle.
 
 ## IC-08: Technology Stack
 
-**Decision**: **NestJS 10** (provided TypeScript skeleton — `@nestjs/*` ^10.0.0 per
-`package.json`), TypeScript 5.x, PostgreSQL 16 (pinned in `compose.yml`), TypeORM 0.3 with
-migrations, JWT via `@nestjs/jwt` + `@nestjs/passport`, scheduling via `@nestjs/schedule`.
+**Decision**: **NestJS 11**, TypeScript 5.x, PostgreSQL 16 (pinned in `compose.yml`),
+TypeORM 0.3 with migrations, JWT via `@nestjs/jwt` + `@nestjs/passport`, scheduling via
+`@nestjs/schedule`.
 
-**Rationale**: Implementation baseline is the supplied skeleton; no NestJS major-version
-upgrade is planned. Node.js 20+ required (aligned with plan).
+**Rationale**: Assignment PDF §1 requires NestJS 11 (Constitution I). The provided skeleton
+ships NestJS 10 (`@nestjs/*` ^10 in `package.json`) — upgrade to NestJS 11 as the **first
+Foundation/setup task** in `plan.md` before feature modules. Node.js 20+ required (aligned with plan).
 
-**Implementation notes** (NestJS 10 baseline):
+**NestJS 11 migration notes** (implementation):
 
-- Keep existing `@nestjs/*` v10 dependencies from skeleton; add auth/schedule/config packages
-  at compatible v10 versions.
-- Use TypeORM migrations (`synchronize: false`); wire `TypeOrmModule.forRoot` once in root module.
-- Re-run full e2e suite after adding new modules and dependencies.
+- Upgrade `@nestjs/*` packages to v11; verify `@nestjs/typeorm` compatibility.
+- Express v5 default: use Nest’s legacy route path converter if wildcard routes needed.
+- Dynamic modules: assign `TypeOrmModule.forRoot(...)` to a shared `const` and reuse the
+  reference to avoid duplicate DataSource instances under v11 module resolution.
+- Re-run full e2e suite after upgrade.
 
 **Additional packages** (to add during implementation):
 

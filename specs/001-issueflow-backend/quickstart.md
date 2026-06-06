@@ -14,7 +14,7 @@ Detailed setup steps will live in `run.md` (deliverable); this guide defines *wh
 
 - Node.js 20+
 - Docker (for PostgreSQL via `compose.yml` — PostgreSQL 16 pinned)
-- NestJS **10** dependencies installed (provided skeleton baseline)
+- NestJS **11** dependencies installed
 - `npm install` completed
 - Database running: `docker compose up -d db`
 - Migrations applied and seed ADMIN created (see `run.md`)
@@ -206,7 +206,7 @@ E2E suite structure defined in [plan.md § README Endpoint → E2E Coverage Matr
 ## Success Checklist
 
 - [ ] All 36 README endpoints covered
-- [ ] NestJS 10 stack running
+- [ ] NestJS 11 stack running
 - [ ] PD-01–PD-10 verified (PD-09 login semantics in `run.md`; PD-10 delete cascade)
 - [ ] IC-10 → `409` on concurrent PATCH
 - [ ] IC-11: `ProjectMember` sole pool; no bootstrap; null without members

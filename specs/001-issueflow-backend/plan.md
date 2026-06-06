@@ -1,6 +1,6 @@
 # Implementation Plan: IssueFlow Ticket Management Backend
 
-**Branch**: `001-issueflow-backend` | **Date**: 2026-06-06 | **Last Updated**: 2026-06-06 (IC-08 NestJS 10 skeleton baseline) | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-issueflow-backend` | **Date**: 2026-06-06 | **Last Updated**: 2026-06-06 (NestJS 11 baseline; skeleton v10→11 in Foundation) | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/001-issueflow-backend/spec.md`
 
@@ -18,9 +18,9 @@ The implementation preserves the **README API contract exactly** — no new endp
 fields, or PATCH body extensions. Approved product decisions PD-01–PD-10 are honored.
 Planning resolves **IC-10** (concurrent updates via pessimistic `FOR UPDATE NOWAIT` → `409`)
 and **IC-11** (internal `ProjectMember` as sole source of truth for DEVELOPERs “in the
-project” — no bootstrap). Stack uses the provided **NestJS 10** skeleton (`package.json`).
+project” — no bootstrap). Stack targets **NestJS 11** per assignment PDF.
 
-Technical approach: modular NestJS 10 feature modules, TypeORM entities with migrations,
+Technical approach: modular NestJS 11 feature modules, TypeORM entities with migrations,
 PostgreSQL persistence, JWT auth with token deny-list, global validation/error handling,
 append-only audit logging, local filesystem attachments, and `@nestjs/schedule` for escalation.
 
@@ -30,9 +30,14 @@ append-only audit logging, local filesystem attachments, and `@nestjs/schedule` 
 
 **Language/Version**: TypeScript 5.1+, Node.js 20 LTS
 
-**Primary Dependencies**: NestJS 10 (`@nestjs/*` ^10.0.0), TypeORM 0.3, PostgreSQL (`pg`), class-validator,
+**Primary Dependencies**: NestJS 11, TypeORM 0.3, PostgreSQL (`pg`), class-validator,
 class-transformer, @nestjs/jwt, @nestjs/passport, @nestjs/schedule, @nestjs/config, multer,
 csv-parse, csv-stringify, bcrypt, file-type (magic-byte validation)
+
+**Skeleton baseline**: The provided repository skeleton ships **NestJS 10** (`@nestjs/*` ^10 in
+`package.json`). **NestJS 11** is the project target per assignment PDF (IC-08). Upgrade the
+skeleton to NestJS 11 as the **first Foundation/setup task** before feature work — see
+[Implementation Phases § Foundation](#implementation-phases-for-speckit-tasks).
 
 **Storage**: PostgreSQL 16 (Docker Compose); attachment files on local filesystem (`ATTACHMENTS_PATH`)
 
@@ -107,7 +112,7 @@ share the same pool: linked `DEVELOPER` members only. See [research.md § IC-11]
 | IC-05 | Static routes before parameterized | research.md |
 | IC-06 | NestJS-standard error JSON shape | contracts/error-responses.md |
 | IC-07 | 1-minute UTC escalation cron | research.md |
-| IC-08 | NestJS 10 (skeleton baseline) + TypeORM + PostgreSQL + JWT | research.md |
+| IC-08 | NestJS 11 + TypeORM + PostgreSQL + JWT | research.md |
 | IC-09 | `deletedWithProjectId` on Ticket | data-model.md |
 
 ### Approved Product Decisions (PD-01–PD-10)
@@ -605,7 +610,7 @@ specs/001-issueflow-backend/
 │   └── error-responses.md
 ├── decision-log.md      # PD-* and IC-* source
 ├── spec.md              # Requirements source of truth
-└── tasks.md             # Phase 2 (/speckit-tasks — not yet created)
+└── tasks.md             # Phase 2 dependency-ordered implementation tasks
 ```
 
 ### Source Code (repository root)
@@ -720,6 +725,7 @@ Feature modules map 1:1 to README API groups. Tests split unit (`src/`) and e2e 
 |------|------------|
 | `FOR UPDATE NOWAIT` under high contention returns many 409s | Acceptable for assignment scale; clients retry |
 | MVP login without password verification (PD-09) | Approved PD-09; seed ADMIN hashed; document in `run.md` |
+| NestJS 10 → 11 upgrade | Follow IC-08 migration notes; re-run e2e after upgrade |
 | Scheduler timing flaky in e2e | Injectable `Clock`; unit test escalation logic |
 | File upload attacks | IC-04 three-layer validation; store outside web root |
 | Route shadowing | IC-05 explicit registration order + e2e route tests |
@@ -747,6 +753,7 @@ No new assumptions introduced beyond spec A-01–A-11.
 | Violation / addition | Why needed | Simpler alternative rejected because |
 |----------------------|------------|--------------------------------------|
 | `ProjectMember` internal entity | IC-11 sole source of truth without membership APIs | Option A breaks “linked/in project”; bootstrap removed per correction |
+| NestJS 11 vs skeleton v10 | Assignment PDF §1 mandate | Staying on v10 fails grading contract |
 
 Repository helpers and transaction wrapper justified by IC-10 and IC-11 query complexity.
 
@@ -756,7 +763,14 @@ Repository helpers and transaction wrapper justified by IC-10 and IC-11 query co
 
 Suggested task generation order:
 
-1. **Foundation** — NestJS 10 skeleton setup, TypeORM, migrations, seed, global guards/filters/pipes, audit service
+1. **Foundation / setup**
+   - **NestJS 10 → 11 upgrade** (first task): Bump all `@nestjs/*` packages in `package.json`
+     (core, platform-express, typeorm, cli, schematics, testing) from v10 to v11 per IC-08.
+     Verify `nest build`, existing unit tests, and skeleton e2e still pass. Follow migration
+     notes in [research.md § IC-08](./research.md#ic-08-technology-stack) (Express v5 route
+     paths, dynamic-module `TypeOrmModule.forRoot` reference reuse).
+   - TypeORM `DataSource`, migrations framework, Docker Compose PostgreSQL
+   - Initial schema + seed migrations, global guards/filters/pipes, audit service
 2. **US1–US2** — Auth + Users (P1)
 3. **US3–US4** — Projects + Tickets core lifecycle (P1)
 4. **US5–US8** — Comments, dependencies, attachments, CSV (P2)
@@ -773,4 +787,4 @@ All gates remain **passed** after Phase 1 design. API contract preserved in `con
 Data model supports all business rules without exposing internal fields. Testing approach
 covers SC-001 through SC-007 from spec.
 
-**Ready for**: `/speckit-tasks` to generate dependency-ordered `tasks.md`.
+**Ready for**: `/speckit-implement` to execute tasks in `tasks.md`.
