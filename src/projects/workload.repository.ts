@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ProjectMember } from './entities/project-member.entity';
-import { UserRole, TicketStatus } from '../common/enums';
+import { DataSource } from 'typeorm';
+import { TicketStatus, UserRole } from '../common/enums';
 
 export interface WorkloadRow {
   userId: number;
@@ -12,35 +10,27 @@ export interface WorkloadRow {
 
 @Injectable()
 export class WorkloadRepository {
-  constructor(
-    @InjectRepository(ProjectMember)
-    private readonly projectMemberRepository: Repository<ProjectMember>,
-  ) {}
+  constructor(private readonly dataSource: DataSource) {}
 
   async getWorkload(projectId: number): Promise<WorkloadRow[]> {
-    const rows = await this.projectMemberRepository
-      .createQueryBuilder('pm')
-      .innerJoin('pm.user', 'u')
-      .leftJoin(
-        'tickets',
-        't',
-        't.assigneeId = u.id AND t.projectId = :projectId AND t.deletedAt IS NULL AND t.status != :done',
-        { projectId, done: TicketStatus.DONE },
-      )
-      .select('u.id', 'userId')
-      .addSelect('u.username', 'username')
-      .addSelect('u.createdAt', 'createdAt')
-      .addSelect('COUNT(t.id)', 'openTicketCount')
-      .where('pm.projectId = :projectId', { projectId })
-      .andWhere('u.role = :role', { role: UserRole.DEVELOPER })
-      .groupBy('u.id')
-      .addGroupBy('u.username')
-      .addGroupBy('u.createdAt')
-      .orderBy('openTicketCount', 'ASC')
-      .addOrderBy('u.createdAt', 'ASC')
-      .getRawMany();
+    const rows = await this.dataSource.query(
+      `
+      SELECT u.id AS "userId",
+             u.username AS username,
+             COUNT(t.id) FILTER (
+               WHERE t.status != $3 AND t."deletedAt" IS NULL
+             )::int AS "openTicketCount"
+      FROM project_members pm
+      INNER JOIN users u ON u.id = pm."userId" AND u.role = $2
+      LEFT JOIN tickets t ON t."assigneeId" = u.id AND t."projectId" = $1
+      WHERE pm."projectId" = $1
+      GROUP BY u.id, u.username, u."createdAt"
+      ORDER BY "openTicketCount" ASC, u."createdAt" ASC
+      `,
+      [projectId, UserRole.DEVELOPER, TicketStatus.DONE],
+    );
 
-    return rows.map((r) => ({
+    return rows.map((r: { userId: number; username: string; openTicketCount: number }) => ({
       userId: Number(r.userId),
       username: r.username,
       openTicketCount: Number(r.openTicketCount),

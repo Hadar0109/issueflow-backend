@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,7 +10,7 @@ import { Ticket } from '../tickets/entities/ticket.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { PatchCommentDto } from './dto/patch-comment.dto';
 import { MentionParserService } from './mention-parser.service';
-import { CommentPatchService } from './comment-patch.service';
+import { lockRowForUpdateNowait } from '../common/database/pessimistic-lock';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction, AuditActor, AuditEntityType } from '../common/enums';
 import { TransactionRunner } from '../common/database/transaction-runner';
@@ -24,7 +23,6 @@ export class CommentsService {
     @InjectRepository(Ticket)
     private readonly ticketRepository: Repository<Ticket>,
     private readonly mentionParserService: MentionParserService,
-    private readonly commentPatchService: CommentPatchService,
     private readonly auditService: AuditService,
     private readonly transactionRunner: TransactionRunner,
   ) {}
@@ -79,19 +77,14 @@ export class CommentsService {
   ) {
     await this.assertActiveTicket(ticketId);
 
-    return this.transactionRunner.withQueryRunner(async (queryRunner) => {
-      let comment: Comment;
-      try {
-        comment = await queryRunner.manager
-          .createQueryBuilder(Comment, 'comment')
-          .setLock('pessimistic_write', undefined, ['nowait'])
-          .where('comment.id = :commentId', { commentId })
-          .getOne();
-      } catch {
-        throw new ConflictException(
-          'This resource is being updated by another request. Please retry.',
-        );
-      }
+    const saved = await this.transactionRunner.withQueryRunner(async (queryRunner) => {
+      const comment = await lockRowForUpdateNowait(
+        queryRunner.manager,
+        Comment,
+        'comment',
+        'id',
+        commentId,
+      );
       if (!comment || comment.ticketId !== ticketId) {
         throw new NotFoundException('Comment not found');
       }
@@ -100,17 +93,19 @@ export class CommentsService {
       }
 
       comment.content = dto.content;
-      const saved = await queryRunner.manager.save(Comment, comment);
-      await this.mentionParserService.rebuildMentions(saved.id, dto.content);
+      const updated = await queryRunner.manager.save(Comment, comment);
       await this.auditService.log({
         action: AuditAction.UPDATE,
         entityType: AuditEntityType.COMMENT,
-        entityId: saved.id,
+        entityId: updated.id,
         performedBy: jwtUserId,
         actor: AuditActor.USER,
       });
-      return this.toResponse(saved);
+      return updated;
     });
+
+    await this.mentionParserService.rebuildMentions(saved.id, dto.content);
+    return this.toResponse(saved);
   }
 
   async delete(ticketId: number, commentId: number, jwtUserId: number) {

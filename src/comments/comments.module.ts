@@ -7,7 +7,6 @@ import { User } from '../users/entities/user.entity';
 import { CommentsController } from './comments.controller';
 import { CommentsService } from './comments.service';
 import { MentionParserService } from './mention-parser.service';
-import { CommentPatchService } from './comment-patch.service';
 import { AuditModule } from '../audit/audit.module';
 
 @Module({
@@ -16,7 +15,7 @@ import { AuditModule } from '../audit/audit.module';
     AuditModule,
   ],
   controllers: [CommentsController],
-  providers: [CommentsService, MentionParserService, CommentPatchService],
+  providers: [CommentsService, MentionParserService],
   exports: [MentionParserService],
 })
 export class CommentsModule {}

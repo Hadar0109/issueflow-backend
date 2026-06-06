@@ -11,5 +11,6 @@ export function computeIsOverdue(ticket: Ticket, now: Date): boolean {
   if (ticket.isOverdue) {
     return true;
   }
-  return now > new Date(ticket.dueDate);
+  // BR-05: when isOverdue was cleared (e.g. manual priority PATCH), keep false until escalation sets the flag again
+  return false;
 }

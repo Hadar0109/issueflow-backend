@@ -27,6 +27,7 @@ export class AuditController {
       performedBy: log.performedBy,
       actor: log.actor,
       timestamp: log.timestamp.toISOString(),
+      ...(log.metadata ? { metadata: log.metadata } : {}),
     }));
   }
 }

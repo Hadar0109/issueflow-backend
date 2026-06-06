@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,7 +12,7 @@ import { TicketsRepository } from './tickets.repository';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectMembershipService } from '../projects/project-membership.service';
 import { TicketStatusService } from './ticket-status.service';
-import { TicketPatchService } from './ticket-patch.service';
+import { lockRowForUpdateNowait } from '../common/database/pessimistic-lock';
 import { AutoAssignService } from './auto-assign.service';
 import { UsersRepository } from '../users/users.repository';
 import { AuditService } from '../audit/audit.service';
@@ -30,7 +29,6 @@ export class TicketsService {
     private readonly projectsService: ProjectsService,
     private readonly projectMembershipService: ProjectMembershipService,
     private readonly ticketStatusService: TicketStatusService,
-    private readonly ticketPatchService: TicketPatchService,
     private readonly autoAssignService: AutoAssignService,
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
@@ -119,18 +117,13 @@ export class TicketsService {
 
   async patch(id: number, dto: PatchTicketDto, actorId: number) {
     return this.transactionRunner.withQueryRunner(async (queryRunner) => {
-      let ticket: Ticket;
-      try {
-        ticket = await queryRunner.manager
-          .createQueryBuilder(Ticket, 'ticket')
-          .setLock('pessimistic_write', undefined, ['nowait'])
-          .where('ticket.id = :ticketId', { ticketId: id })
-          .getOne();
-      } catch {
-        throw new ConflictException(
-          'This resource is being updated by another request. Please retry.',
-        );
-      }
+      const ticket = await lockRowForUpdateNowait(
+        queryRunner.manager,
+        Ticket,
+        'ticket',
+        'id',
+        id,
+      );
       if (!ticket || ticket.deletedAt) {
         throw new NotFoundException('Ticket not found');
       }

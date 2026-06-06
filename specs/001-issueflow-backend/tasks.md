@@ -316,26 +316,26 @@
 
 - [X] T115 [P] Create e2e test helpers in `test/helpers/auth.helpers.ts` and `test/helpers/fixtures.ts`
 - [X] T116 [P] Implement `test/auth.e2e-spec.ts` per plan.md E2E matrix rows 1–3
-- [ ] T117 [P] Implement `test/users.e2e-spec.ts` per plan.md E2E matrix rows 4–8
-- [ ] T118 [P] Implement `test/projects.e2e-spec.ts` per plan.md E2E matrix rows 9–17
-- [ ] T119 [P] Implement `test/tickets.e2e-spec.ts` per plan.md E2E matrix rows 18–22, 25–26
-- [ ] T120 [P] Implement `test/comments.e2e-spec.ts` per plan.md E2E matrix rows 27–29
-- [ ] T121 [P] Implement `test/dependencies.e2e-spec.ts` per plan.md E2E matrix rows 32–34
-- [ ] T122 [P] Implement `test/attachments.e2e-spec.ts` per plan.md E2E matrix rows 35–36
-- [ ] T123 [P] Implement `test/import-export.e2e-spec.ts` per plan.md E2E matrix rows 23–24
-- [ ] T124 [P] Implement `test/audit.e2e-spec.ts` per plan.md E2E matrix row 31
-- [ ] T125 [P] Implement `test/concurrency.e2e-spec.ts` for IC-10 ticket and comment concurrent PATCH
-- [ ] T126 [P] Implement `test/escalation.e2e-spec.ts` with injected Clock
-- [ ] T127 [P] Implement `test/contract.e2e-spec.ts` README endpoint sweep (min. one happy path per route)
+- [X] T117 [P] Implement `test/users.e2e-spec.ts` per plan.md E2E matrix rows 4–8
+- [X] T118 [P] Implement `test/projects.e2e-spec.ts` per plan.md E2E matrix rows 9–17
+- [X] T119 [P] Implement `test/tickets.e2e-spec.ts` per plan.md E2E matrix rows 18–22, 25–26
+- [X] T120 [P] Implement `test/comments.e2e-spec.ts` per plan.md E2E matrix rows 27–29
+- [X] T121 [P] Implement `test/dependencies.e2e-spec.ts` per plan.md E2E matrix rows 32–34
+- [X] T122 [P] Implement `test/attachments.e2e-spec.ts` per plan.md E2E matrix rows 35–36
+- [X] T123 [P] Implement `test/import-export.e2e-spec.ts` per plan.md E2E matrix rows 23–24
+- [X] T124 [P] Implement `test/audit.e2e-spec.ts` per plan.md E2E matrix row 31
+- [X] T125 [P] Implement `test/concurrency.e2e-spec.ts` for IC-10 ticket and comment concurrent PATCH
+- [X] T126 [P] Implement `test/escalation.e2e-spec.ts` with injected Clock
+- [X] T127 [P] Implement `test/contract.e2e-spec.ts` README endpoint sweep (min. one happy path per route)
 - [X] T128 [P] Add unit tests for `TicketStatusService` in `src/tickets/ticket-status.service.spec.ts`
-- [ ] T129 [P] Add unit tests for `AutoAssignService` in `src/tickets/auto-assign.service.spec.ts`
+- [X] T129 [P] Add unit tests for `AutoAssignService` in `src/tickets/auto-assign.service.spec.ts`
 - [X] T130 [P] Add unit tests for `MentionParserService` in `src/comments/mention-parser.service.spec.ts`
-- [ ] T131 [P] Add unit tests for `CsvImportService` in `src/tickets/csv-import.service.spec.ts`
-- [ ] T132 [P] Add unit tests for `TicketEscalationService` in `src/tickets/ticket-escalation.service.spec.ts`
-- [ ] T133 [P] Add unit tests for `UsersService` delete cascade in `src/users/users.service.spec.ts`
+- [X] T131 [P] Add unit tests for `CsvImportService` in `src/tickets/csv-import.service.spec.ts`
+- [X] T132 [P] Add unit tests for `TicketEscalationService` in `src/tickets/ticket-escalation.service.spec.ts`
+- [X] T133 [P] Add unit tests for `UsersService` delete cascade in `src/users/users.service.spec.ts`
 - [X] T134 Create `run.md` at repository root with setup, migrate, seed ADMIN credentials, MVP login semantics (PD-09)
 - [X] T135 Update `docs/prompts.md` with implementation prompt log per constitution deliverable
-- [ ] T136 Run quickstart.md validation scenarios and fix any gaps
+- [X] T136 Run quickstart.md validation scenarios and fix any gaps
 
 ---
 
