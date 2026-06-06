@@ -1,16 +1,16 @@
 services:
-  db:
-    image: postgres
-    restart: always
+  postgres:
+    image: postgres:16
+    container_name: issueflow-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: issueflow
       POSTGRES_PASSWORD: issueflow
       POSTGRES_DB: issueflow
-  #  volumes:
-   #   - type: bind
-   #     source: ./data
-   #     target: /var/lib/postgresql/data --> in case u need to save data to local storage
-    ports:
-      - target: 5432
-        published: 5432
-        protocol: tcp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

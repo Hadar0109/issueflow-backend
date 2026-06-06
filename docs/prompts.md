@@ -118,7 +118,7 @@ Requirements:
 
 The goal is to produce a planning document that is ready for task generation and implementation.
 
-### Final Design Review Before Task Generation
+### Design Review Before
 Perform a final pre-task review of the planning artifacts.
 
 Verify alignment between the assignment PDF, README API contract, spec.md, decision-log.md, plan.md, data model, contracts, and testing strategy.
@@ -161,7 +161,19 @@ Do not implement code.
 Update the planning artifacts only and provide a summary of the changes made.
 
 ### Tasks Prompt
-[paste the /speckit.tasks prompt]
+/speckit-tasks
+
+### Task Structure Review
+Before implementation, please do a quick architectural review of the generated task structure.
+
+In particular, explain the reasoning behind:
+
+* Comments + Mentions being grouped together
+* Soft Delete / Restore being a separate story
+* Audit Query placement
+* Auto-Assignment + Workload grouping
+
+For each, briefly compare alternative structures and confirm whether you would keep the current design unchanged.
 
 ### Security Review Prompt
 [paste security review prompt]
@@ -171,3 +183,16 @@ Update the planning artifacts only and provide a summary of the changes made.
 
 ### Testing Strategy Prompt
 [paste testing prompt]
+
+### Implementation Prompt
+/speckit-implement
+
+Execute the full implementation plan from `specs/001-issueflow-backend/tasks.md`:
+
+- Upgrade skeleton to NestJS 11 (IC-08)
+- Implement all 12 user stories with README-aligned API contract
+- TypeORM migrations (InitialSchema + SeedAdminUser)
+- JWT auth with deny-list, audit logging, soft delete/restore
+- ProjectMember (IC-11), pessimistic locks (IC-10), escalation scheduler (IC-07)
+- E2E and unit tests per plan.md Testing Approach
+- `run.md` with PD-09 MVP login semantics
