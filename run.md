@@ -25,7 +25,7 @@ Default values connect to the Docker Compose PostgreSQL instance.
 3. Start PostgreSQL:
 
 ```bash
-docker compose -f compose.yml up -d
+docker compose -f compose.yml up -d db
 ```
 
 4. Build the application:
