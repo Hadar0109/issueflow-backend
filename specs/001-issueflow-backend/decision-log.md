@@ -2,7 +2,7 @@
 
 **Feature**: `001-issueflow-backend`  
 **Created**: 2026-06-05  
-**Last Updated**: 2026-06-05  
+**Last Updated**: 2026-06-06  
 **Purpose**: Records resolved product decisions and implementation candidates
 deferred to `/speckit-plan`. The specification (`spec.md`) defines *what*; this document
 records *decisions* and *how* candidates for planning.
@@ -25,12 +25,23 @@ Approved decisions here MUST be reflected in `plan.md` during planning.
 | PD-07 | Export excludes soft-deleted tickets | Spec |
 | PD-08 | **Initial bootstrap**: Use a seeded initial ADMIN user; seed credentials documented in `run.md`; no API contract changes | Resolved OD-04 |
 | PD-09 | **Login credentials (MVP)**: `POST /auth/login` keeps `username` + `password` per README; `password` is syntactically required. MVP validates that the username exists; password persistence and verification are not required in MVP. `POST /users` body unchanged (no `password` field). *Plan alternative*: optional `password` on `POST /users` with full username+password auth — only if explicitly chosen in plan without changing paths | Resolved OD-02 |
+| PD-10 | **User deletion**: Hard delete with cascade cleanup (Option 1). Guards per BR-14 only (project owner, assignee on non-DONE ticket). Authored comments do **not** block delete. On delete: remove authored comments and related mentions, remove received mention rows, remove `ProjectMember` rows, `SET NULL` `assigneeId` on DONE-assigned tickets, retain `audit_logs.performedBy` user id. No user soft-delete | User-delete review 2026-06-06 |
 
 ### PD-09 detail
 
 Preserves README registration body. Login contract unchanged. Seeded ADMIN (PD-08) can
 always log in via username-existence check. Users created via `POST /users` can log in
 when their username exists (any syntactically valid password in MVP).
+
+### PD-10 detail
+
+- `DELETE /users/:userId` remains `200` / `409` per README and spec; no new endpoints.
+- Comment authorship is **not** a blocking reference (supersedes prior plan-only BR-14c).
+- `GET /users/:userId` and `GET /users/:userId/mentions` return `404` after delete.
+- Historical `GET /audit-logs` rows keep original numeric `performedBy` even when that user
+  no longer exists (`GET /users/:performedBy` may return `404`).
+- Per-comment `DELETE` audit entries are **not** required for cascade-deleted comments (only
+  the user `DELETE` action is audited).
 
 ---
 
@@ -106,7 +117,8 @@ RevokedToken (if deny-list chosen).
 
 ### IC-08: Technology stack (assignment + constitution)
 
-- NestJS, TypeScript, PostgreSQL, TypeORM, JWT
+- NestJS **10** (provided skeleton baseline per `package.json`); no v11 upgrade planned
+- TypeScript, PostgreSQL, TypeORM, JWT
 - Docker Compose for local database
 
 ### IC-09: Project delete / restore internal tracking
@@ -146,6 +158,11 @@ which DEVELOPERs belong to a project for auto-assign and workload?
 workload use the **same** definition. Do not add membership APIs unless assignment scope
 changes.
 
+**Resolved in plan (2026-06-06, revised)**: Option E — internal `ProjectMember` table as
+**sole source of truth**. Auto-assign and workload use linked `DEVELOPER` members only.
+No bootstrap from system-wide DEVELOPERs. `assigneeId: null` when no members. Membership
+created only via DEVELOPER owner or explicit `assigneeId`. See `research.md` IC-11 and `plan.md`.
+
 ---
 
 ### IC-10: Concurrent ticket and comment updates (plan must decide)
@@ -168,6 +185,9 @@ PATCH body extensions.
 **Plan must**: Select one option, document tradeoffs, and align tests with chosen
 behavior. Do not assume Option B unless plan explicitly accepts README PATCH extension.
 
+**Resolved in plan (2026-06-06)**: Pessimistic `SELECT … FOR UPDATE NOWAIT` → `409 Conflict`.
+See `research.md` IC-10 and `plan.md`.
+
 ---
 
 ## Review History
@@ -179,3 +199,7 @@ behavior. Do not assume Option B unless plan explicitly accepts README PATCH ext
 | 2026-06-05 | Resolved OD-01–OD-04; removed OD-05 (derived from OD-01); OD-06 → IC-09; all product decisions approved (PD-08–PD-11) |
 | 2026-06-05 | Pre-plan review: PD-11 withdrawn → IC-10; auto-assign pool → IC-11 (not a product decision) |
 | 2026-06-05 | PD-09 removed; assignment wording only in spec; DEVELOPER-in-project modeling → IC-11 |
+| 2026-06-06 | Pre-task review: IC-11 → Option E (`ProjectMember`); stack → NestJS 11; cascade audit; validation/e2e matrix in plan.md |
+| 2026-06-06 | IC-11 revised: strict `ProjectMember` source of truth, bootstrap removed; username no-whitespace rule added |
+| 2026-06-06 | PD-10: user hard delete with cascade (Option 1); retain audit `performedBy`; remove comment-author delete block |
+| 2026-06-06 | IC-08 baseline aligned to NestJS 10 skeleton; removed v11 upgrade from plan/research |

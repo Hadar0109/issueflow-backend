@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-issueflow-backend`  
 **Created**: 2026-06-05  
-**Last Reviewed**: 2026-06-05  
+**Last Reviewed**: 2026-06-06  
 **Status**: Requirements (behavior-focused)  
 **Input**: TDP 2026 assignment (`docs/TDP_issueflow_requirements.pdf`), README API contract,
 Constitution v1.1.1.
@@ -83,7 +83,15 @@ As an administrator, I register and manage users for assignments and comments.
    **Then** `200` on success.
 4. **Given** a user who owns a project or is assignee on a non-DONE ticket, **When**
    `DELETE /users/:userId`, **Then** `409` and user not deleted.
-5. **Given** no blocking references, **When** `DELETE /users/:userId`, **Then** `200`.
+5. **Given** no BR-14 blocking references, **When** `DELETE /users/:userId`, **Then** `200`
+   and user is hard-deleted (PD-10).
+6. **Given** a user who authored comments but passes BR-14, **When** `DELETE /users/:userId`,
+   **Then** `200`; authored comments and their mention rows are removed; mention rows where
+   the user was mentioned on others' comments are removed (PD-10 / BR-18).
+7. **Given** a deleted user, **When** `GET /users/:userId` or `GET /users/:userId/mentions`,
+   **Then** `404`.
+8. **Given** audit log entries where `performedBy` references a deleted user, **When**
+   `GET /audit-logs`, **Then** `performedBy` retains the original numeric user id (PD-10).
 
 ---
 
@@ -273,7 +281,8 @@ As a team lead, overdue tickets escalate in priority automatically.
 - **FR-USER-002**: Role MUST be `ADMIN` or `DEVELOPER`.
 - **FR-USER-003**: Registration accepts README fields: `username`, `email`, `fullName`, `role`.
 - **FR-USER-004**: Update allows `fullName` and `role` only.
-- **FR-USER-005**: Delete removes user when permitted (see BR-14).
+- **FR-USER-005**: Delete hard-removes user when permitted (BR-14); cascade per BR-18 / PD-10.
+- **FR-USER-006**: `GET /users` and `GET /users/:userId` exclude deleted users (`404` by id).
 
 ### Projects
 
@@ -353,6 +362,8 @@ As a team lead, overdue tickets escalate in priority automatically.
 - **FR-AUD-003**: User-initiated and system-initiated actions MUST be distinguishable
   (`actor`: `USER` vs `SYSTEM` per README example).
 - **FR-AUD-004**: Auto-assign and escalation MUST be auditable as system actions.
+- **FR-AUD-005**: `performedBy` on historical audit rows MUST retain the original user id
+  after that user is hard-deleted (PD-10); no FK cascade that nulls or removes audit attribution.
 
 ### Auto-Escalation
 
@@ -433,7 +444,36 @@ Soft-deleted blockers excluded from dependency list; do not prevent DONE.
 
 ### BR-14: User Delete Guard
 
-Cannot delete user who owns a project or is assignee on a non-DONE ticket.
+Cannot delete user who owns any project (including soft-deleted projects) or is assignee
+on a non-DONE ticket (including tickets on soft-deleted projects). Comment authorship and
+received mentions do **not** block delete (PD-10).
+
+### BR-18: User Hard Delete Cascade (PD-10)
+
+When `DELETE /users/:userId` succeeds (`200`), the system hard-deletes the user and cleans up
+related data in one transaction:
+
+1. Delete `mentions` on comments authored by the user.
+2. Hard-delete all comments authored by the user.
+3. Delete `mentions` rows where `userId` is the deleted user (received mentions).
+4. Delete `project_members` rows for the user.
+5. Set `assigneeId = null` on tickets where the user was assignee (only reachable when all
+   assigned tickets are `DONE` per BR-14).
+6. Record `DELETE` / `USER` in the audit log (`entityId` = deleted user, `performedBy` = actor).
+7. Hard-delete the `users` row.
+
+**Not cascade-deleted**: audit log rows (append-only). **Not nulled**: `audit_logs.performedBy`
+on historical entries — original user id is preserved (FR-AUD-005).
+
+**API after delete**:
+
+- `GET /users/:userId` → `404`.
+- `GET /users/:userId/mentions` → `404`.
+- `GET /tickets/:ticketId/comments` → authored comments by deleted user no longer appear.
+- Other users' comments may still contain `@username` text; `mentionedUsers` omits deleted user.
+- `GET /audit-logs` → `performedBy` may reference a user id that returns `404` on `GET /users/:id`.
+
+Per-comment `DELETE` audit entries are not required for cascade-removed comments.
 
 ### BR-15: Mention Re-evaluation
 
@@ -465,7 +505,7 @@ Export includes only non-soft-deleted tickets for the project.
 
 | Field | Rule |
 |-------|------|
-| `username` | Required; unique (case-insensitive) |
+| `username` | Required; unique (case-insensitive); single token — no whitespace (for `@mentions`) |
 | `email` | Required; valid format; unique (case-insensitive) |
 | `fullName` | Required; non-empty |
 | `role` | Required; `ADMIN` or `DEVELOPER` |
@@ -559,9 +599,14 @@ Relationships and lifecycle:
 - Tickets belong to one project.
 - Soft-deleted tickets and projects are hidden from standard queries but recoverable by
   ADMIN per assignment.
-- Users and comments are removed on delete (hard delete per assignment §2.1, §2.5).
+- Users are **hard-deleted** per assignment §2.1 (no user soft-delete). Comments are
+  hard-deleted individually via API or **cascade-deleted** when their author user is
+  hard-deleted (BR-18 / PD-10).
+- Audit log is append-only; `performedBy` retains historical user ids after user delete
+  (FR-AUD-005).
 - Referential references (`ownerId`, `assigneeId`, `projectId`) MUST point to existing
-  active records when set, unless specified otherwise in edge cases.
+  active records when set on **create/update**, unless specified otherwise in edge cases.
+  Historical audit rows and export CSV may reference deleted user ids.
 
 Detailed schema, storage, and audit action mapping → `decision-log.md` (planning phase).
 
@@ -608,7 +653,8 @@ API datetime fields use ISO-8601 format per README examples.
 | Self-dependency / cross-project dependency | `400` |
 | Concurrent update conflict | Informative error; unsuccessful update rejected (mechanism → IC-10) |
 | Duplicate username/email | `409` |
-| Delete user with dependencies | `409` |
+| Delete user: owns project or assignee on non-DONE ticket (BR-14) | `409` |
+| Delete user: success with cascade (BR-18) | `200`; comments/mentions cleaned per PD-10 |
 | Attachment size/type violation | `400` |
 | `authorId` mismatch | `400` |
 | Invalid login credentials | `401` |
@@ -621,19 +667,30 @@ API datetime fields use ISO-8601 format per README examples.
 1. Create ticket on soft-deleted project → `404`.
 2. Restore ticket while project still deleted → hidden from project-scoped lists until
    project restored.
-3. User delete blocked when owner or active assignee.
-4. Manual assignee may be any existing user when explicitly set.
-5. Auto-assign yields `null` assignee when no DEVELOPER is available in the project.
-6. Tied workload for auto-assign → oldest registration wins (assignment §3.8).
-7. CRITICAL + overdue: `isOverdue` set idempotently.
-8. Import header-only CSV → `created: 0`.
-9. Import duplicate titles allowed.
-10. Circular dependencies allowed; DONE checks direct blockers only.
-11. Export empty project → CSV header only.
-12. Priority PATCH clears `isOverdue`.
-13. Concurrent ticket/comment edits → one succeeds, one fails (IC-10).
-14. Import row with blank `title` → row fails.
-15. Comments/attachments on soft-deleted ticket → `404`.
+3. User delete blocked when owner or active assignee (BR-14).
+4. User delete with authored comments succeeds when BR-14 passes; comments cascade-deleted (BR-18).
+5. User delete removes received `mentions` rows; `@username` text may remain in comment content.
+6. After user delete, `GET /users/:userId/mentions` → `404`.
+7. Audit log keeps `performedBy` user id; `GET /users/:performedBy` may be `404`.
+8. Deleted user's JWT no longer valid for protected endpoints (`401` on user lookup failure).
+9. Username/email may be re-registered after hard delete (unique constraint released).
+10. `assigneeId` cleared on DONE tickets when assignee user deleted.
+11. `ProjectMember` rows for deleted user removed; workload/auto-assign pool updated.
+12. Import row with `assigneeId` of deleted user fails row validation (user must exist).
+13. Manual assignee may be any existing user when explicitly set.
+14. Auto-assign yields `null` assignee when no linked DEVELOPER members (IC-11).
+15. Tied workload for auto-assign → oldest registration wins (assignment §3.8).
+16. CRITICAL + overdue: `isOverdue` set idempotently.
+17. Import header-only CSV → `created: 0`.
+18. Import duplicate titles allowed.
+19. Circular dependencies allowed; DONE checks direct blockers only.
+20. Export empty project → CSV header only.
+21. Priority PATCH clears `isOverdue`.
+22. Concurrent ticket/comment edits → one succeeds, one fails (IC-10).
+23. Import row with blank `title` → row fails.
+24. Comments/attachments on soft-deleted ticket → `404`.
+25. Seeded ADMIN delete blocked if owner of any project or active assignee (same BR-14).
+26. Project owner delete blocked even when project is soft-deleted (`ownerId` still references user).
 
 ---
 
@@ -645,7 +702,7 @@ API datetime fields use ISO-8601 format per README examples.
 - **SC-004**: CSV round-trip preserves commas and quotes in field values.
 - **SC-005**: Simultaneous ticket/comment updates do not both succeed.
 - **SC-006**: `run.md` enables setup, run, and test without undocumented steps.
-- **SC-007**: Approved product decisions (PD-01–PD-09) and IC-10/IC-11 planning choices
+- **SC-007**: Approved product decisions (PD-01–PD-10) and IC-10/IC-11 planning choices
   reflected in `plan.md` before implementation tasks begin.
 
 ---
@@ -666,18 +723,20 @@ Genuine product-level assumptions only. Implementation choices → `decision-log
 | A-08 | Export `id` column ignored on import (new tickets created) |
 | A-09 | No role restrictions beyond ADMIN soft-delete operations (AR-05) |
 | A-10 | Circular ticket dependencies allowed for MVP (BR-12) |
+| A-11 | Username must not contain whitespace (single token for `@mentions`) |
 
 ---
 
 ## Resolved Product Decisions
 
 All product ambiguities are resolved in [`decision-log.md`](decision-log.md)
-(PD-01–PD-09). Key resolutions affecting this spec:
+(PD-01–PD-10). Key resolutions affecting this spec:
 
 | ID | Summary |
 |----|---------|
 | PD-08 | Seeded initial ADMIN; credentials in `run.md` |
 | PD-09 | MVP login: username existence check; no password persistence on `POST /users` |
+| PD-10 | User hard delete with cascade; audit `performedBy` retained |
 
 **Planning (not product decisions)**:
 

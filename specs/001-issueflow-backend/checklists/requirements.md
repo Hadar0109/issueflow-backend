@@ -14,10 +14,10 @@
 ## Requirement Completeness
 
 - [x] No implementation mechanisms locked in spec (concurrency → IC-10; ORM, deny-list deferred to plan)
-- [x] Product decisions resolved in decision-log.md (PD-01–PD-09)
+- [x] Product decisions resolved in decision-log.md (PD-01–PD-10)
 - [x] Assignment behavioral rules captured
 - [x] Edge cases and error scenarios defined
-- [x] Genuine assumptions only (A-01–A-10)
+- [x] Genuine assumptions only (A-01–A-11)
 - [x] Auto-assignment uses assignment wording; pool definition deferred
 
 ## Feature Readiness
