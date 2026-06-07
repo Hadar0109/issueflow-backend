@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CsvImportService } from './csv-import.service';
@@ -39,7 +40,7 @@ describe('CsvImportService', () => {
     expect(result).toEqual({ created: 0, failed: 0, errors: [] });
   });
 
-  it('blank title row fails; valid row uses defaults (PD-01)', async () => {
+  it('blank title row fails; valid row uses documented defaults (BR-16)', async () => {
     const csv = Buffer.from(
       'title,description,status,priority,type,assigneeId\n' +
         'Good title,,,,,\n' +
@@ -52,8 +53,24 @@ describe('CsvImportService', () => {
       expect.objectContaining({
         status: 'TODO',
         priority: 'MEDIUM',
-        type: 'BUG',
+        type: 'FEATURE',
       }),
     );
+  });
+
+  it('invalid enum value fails row without defaulting', async () => {
+    const csv = Buffer.from(
+      'title,description,status,priority,type,assigneeId\n' +
+        'Row,,INVALID,,,\n',
+    );
+    const result = await service.importCsv(csv, 1, 1);
+    expect(result.created).toBe(0);
+    expect(result.failed).toBe(1);
+    expect(result.errors[0]).toContain('invalid status');
+  });
+
+  it('wrong CSV columns → 400', async () => {
+    const csv = Buffer.from('wrong,headers\nvalue,\n');
+    await expect(service.importCsv(csv, 1, 1)).rejects.toThrow(BadRequestException);
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,6 +16,21 @@ import {
   TicketType,
 } from '../common/enums';
 import { UsersRepository } from '../users/users.repository';
+
+const EXPECTED_COLUMNS = [
+  'title',
+  'description',
+  'status',
+  'priority',
+  'type',
+  'assigneeId',
+] as const;
+
+const DOCUMENTED_DEFAULTS = {
+  status: TicketStatus.TODO,
+  priority: TicketPriority.MEDIUM,
+  type: TicketType.FEATURE,
+} as const;
 
 @Injectable()
 export class CsvImportService {
@@ -36,15 +51,23 @@ export class CsvImportService {
   ): Promise<{ created: number; failed: number; errors: string[] }> {
     await this.projectsService.assertActiveProject(projectId);
 
-    const records: Record<string, string>[] = parse(buffer, {
-      columns: true,
-      skip_empty_lines: true,
-      trim: true,
-    });
+    let records: Record<string, string>[];
+    try {
+      records = parse(buffer, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        bom: true,
+      });
+    } catch {
+      throw new BadRequestException('Invalid CSV format');
+    }
 
     if (records.length === 0) {
       return { created: 0, failed: 0, errors: [] };
     }
+
+    this.assertExpectedColumns(records[0]);
 
     let created = 0;
     let failed = 0;
@@ -61,25 +84,30 @@ export class CsvImportService {
         const status = this.parseEnum(
           row.status,
           Object.values(TicketStatus),
-          TicketStatus.TODO,
+          DOCUMENTED_DEFAULTS.status,
+          'status',
         );
         const priority = this.parseEnum(
           row.priority,
           Object.values(TicketPriority),
-          TicketPriority.MEDIUM,
+          DOCUMENTED_DEFAULTS.priority,
+          'priority',
         );
         const type = this.parseEnum(
           row.type,
           Object.values(TicketType),
-          TicketType.BUG,
+          DOCUMENTED_DEFAULTS.type,
+          'type',
         );
 
-        let assigneeId: number | null = row.assigneeId
-          ? parseInt(row.assigneeId, 10)
-          : null;
+        let assigneeId: number | null = null;
         let autoAssigned = false;
 
-        if (assigneeId) {
+        if (row.assigneeId?.trim()) {
+          assigneeId = parseInt(row.assigneeId, 10);
+          if (Number.isNaN(assigneeId)) {
+            throw new Error('invalid assigneeId');
+          }
           const assignee = await this.usersRepository.findById(assigneeId);
           if (!assignee) {
             throw new Error('invalid assigneeId');
@@ -90,15 +118,24 @@ export class CsvImportService {
           autoAssigned = assigneeId !== null;
         }
 
+        let dueDate: Date | null = null;
+        if (row.dueDate?.trim()) {
+          const parsed = new Date(row.dueDate);
+          if (Number.isNaN(parsed.getTime())) {
+            throw new Error('invalid dueDate');
+          }
+          dueDate = parsed;
+        }
+
         const ticket = await this.ticketRepository.save({
-          title: row.title,
+          title: row.title.trim(),
           description: row.description ?? '',
           status,
           priority,
           type,
           projectId,
           assigneeId,
-          dueDate: row.dueDate ? new Date(row.dueDate) : null,
+          dueDate,
           isOverdue: false,
         });
 
@@ -131,16 +168,32 @@ export class CsvImportService {
     return { created, failed, errors };
   }
 
+  private assertExpectedColumns(firstRow: Record<string, string>): void {
+    const headers = Object.keys(firstRow);
+    const missing = EXPECTED_COLUMNS.filter((col) => !headers.includes(col));
+    const unexpected = headers.filter(
+      (col) => !EXPECTED_COLUMNS.includes(col as (typeof EXPECTED_COLUMNS)[number]) && col !== 'id',
+    );
+    if (missing.length > 0 || unexpected.length > 0) {
+      throw new BadRequestException(
+        `Invalid CSV columns. Expected: ${EXPECTED_COLUMNS.join(', ')}`,
+      );
+    }
+  }
+
   private parseEnum<T extends string>(
     value: string | undefined,
     allowed: T[],
-    defaultValue: T,
+    documentedDefault: T,
+    fieldName: string,
   ): T {
-    if (!value) return defaultValue;
-    const upper = value.toUpperCase() as T;
-    if (!allowed.includes(upper)) {
-      throw new Error(`invalid enum value: ${value}`);
+    if (!value?.trim()) {
+      return documentedDefault;
     }
-    return upper;
+    const normalized = value.trim().toUpperCase() as T;
+    if (!allowed.includes(normalized)) {
+      throw new Error(`invalid ${fieldName}: ${value}`);
+    }
+    return normalized;
   }
 }

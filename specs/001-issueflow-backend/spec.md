@@ -308,11 +308,16 @@ As a team lead, overdue tickets escalate in priority automatically.
 - **FR-TKT-010**: DONE transition blocked when direct blocker dependencies are unresolved.
 - **FR-TKT-011**: `assigneeId`, when provided, MUST reference an existing user.
 - **FR-TKT-012**: When `assigneeId` omitted on create, auto-assign per assignment §3.8.
+- **FR-TKT-013**: Ticket soft-delete blocked while active dependency relations exist; user
+  must remove dependencies first (`400`).
+- **FR-TKT-014**: On ticket soft-delete, purge dependency rows referencing the ticket and
+  remove assignee `ProjectMember` when no active tickets remain (PD-13).
 
 ### Comments
 
 - **FR-CMT-001**: Support comment endpoints per README.
-- **FR-CMT-002**: `authorId` MUST match authenticated user.
+- **FR-CMT-002**: `authorId` MUST match authenticated user on create; only the author may
+  PATCH or DELETE (PD-11). All comment endpoints require JWT (FR-AUTH-003).
 - **FR-CMT-003**: Responses include `mentionedUsers` per README.
 - **FR-CMT-004**: Simultaneous edits to the same comment by multiple users MUST NOT both
   succeed; the unsuccessful client MUST receive an informative error.
@@ -324,6 +329,7 @@ As a team lead, overdue tickets escalate in priority automatically.
 - **FR-DEP-002**: `{ blockedBy }` means ticket is blocked by that ticket.
 - **FR-DEP-003**: Both tickets MUST exist, same project, active at creation.
 - **FR-DEP-004**: Self-dependency rejected.
+- **FR-DEP-005**: Operations on soft-deleted/inactive tickets return `404`.
 
 ### Attachments
 
@@ -401,7 +407,10 @@ priority.
 
 ### BR-06: Overdue Definition
 
-Ticket is overdue when `dueDate` is set and current time is past `dueDate`.
+A ticket is **calendar-overdue** when `dueDate` is set and current time is past `dueDate`.
+Calendar overdue triggers escalation (BR-04). The API response field `isOverdue` follows
+PD-12: it reflects the persisted flag set at `CRITICAL` by the scheduler, cleared on manual
+priority PATCH (BR-05), and is not set immediately when `dueDate` passes.
 
 ### BR-07: Auto-Assignment (assignment §3.8)
 
@@ -490,8 +499,11 @@ Comment update re-parses mentions; add new, remove dropped. Unknown usernames ig
 | `type` | Optional; default `FEATURE` if missing/empty |
 | `assigneeId` | Optional; empty triggers auto-assign rules |
 | `id` | Ignored on import |
+| `dueDate` | Optional; row fails if present but invalid |
 
-Invalid enum value when present → row fails (no default for invalid values).
+Invalid enum value when present → row fails (no default for invalid values). CSV header
+must include the expected columns; wrong structure → `400`. Only BR-16 documented defaults
+apply; no other silent fallbacks.
 
 ### BR-17: Export Scope
 
@@ -574,7 +586,8 @@ All other endpoints require valid JWT.
 ### AR-04: Identity Trust
 
 Authenticated identity from JWT governs authorization. `authorId` in comments must match
-authenticated user. Client-supplied identity MUST NOT override JWT.
+the authenticated user on create (PD-04). Only the comment author may edit or delete a
+comment (PD-11). Client-supplied identity MUST NOT override JWT.
 
 ### AR-05: No Additional Role Gates
 

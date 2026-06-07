@@ -1,8 +1,9 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 
 export class UpdateProjectDto {
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
+  @IsNotEmpty()
   name?: string;
 
   @IsOptional()

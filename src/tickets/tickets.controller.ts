@@ -81,16 +81,12 @@ export class TicketsController {
 
   @HttpCode(200)
   @Patch(':ticketId')
-  patch(
+  async patch(
     @Param('ticketId', ParseIntPipe) ticketId: number,
-    @Body() body: PatchTicketDto & { type?: string },
+    @Body() dto: PatchTicketDto,
     @CurrentUser() user: User,
-  ) {
-    if ('type' in body && body.type !== undefined) {
-      throw new BadRequestException('type cannot be updated');
-    }
-    const { type: _type, ...dto } = body;
-    return this.ticketsService.patch(ticketId, dto, user.id);
+  ): Promise<void> {
+    await this.ticketsService.patch(ticketId, dto, user.id);
   }
 
   @HttpCode(200)
@@ -98,19 +94,18 @@ export class TicketsController {
   async remove(
     @Param('ticketId', ParseIntPipe) ticketId: number,
     @CurrentUser() user: User,
-  ) {
+  ): Promise<void> {
     await this.ticketsService.softDelete(ticketId, user.id);
-    return {};
   }
 
   @HttpCode(200)
   @Post(':ticketId/restore')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
-  restore(
+  async restore(
     @Param('ticketId', ParseIntPipe) ticketId: number,
     @CurrentUser() user: User,
-  ) {
-    return this.ticketsService.restore(ticketId, user.id);
+  ): Promise<void> {
+    await this.ticketsService.restore(ticketId, user.id);
   }
 }

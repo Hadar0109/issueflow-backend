@@ -123,6 +123,39 @@ describe('Tickets (e2e)', () => {
       .expect(200);
   });
 
+  it('DELETE ticket blocked while dependencies exist → 400', async () => {
+    const project = await createProject(app, adminToken, 1, `DelDep ${suffix}`);
+    const blocked = await createTicket(app, adminToken, project.id);
+    const blocker = await createTicket(app, adminToken, project.id);
+    await request(app.getHttpServer())
+      .post(`/tickets/${blocked.id}/dependencies`)
+      .set(authHeader(adminToken))
+      .send({ blockedBy: blocker.id })
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete(`/tickets/${blocked.id}`)
+      .set(authHeader(adminToken))
+      .expect(400);
+    await request(app.getHttpServer())
+      .delete(`/tickets/${blocked.id}/dependencies/${blocker.id}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete(`/tickets/${blocked.id}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+  });
+
+  it('PATCH empty title → 400', async () => {
+    const project = await createProject(app, adminToken, 1, `Empty ${suffix}`);
+    const ticket = await createTicket(app, adminToken, project.id);
+    await request(app.getHttpServer())
+      .patch(`/tickets/${ticket.id}`)
+      .set(authHeader(adminToken))
+      .send({ title: '' })
+      .expect(400);
+  });
+
   it('create ticket on soft-deleted project → 404', async () => {
     const project = await createProject(app, adminToken, 1, `Gone ${suffix}`);
     await request(app.getHttpServer())

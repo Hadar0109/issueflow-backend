@@ -1,5 +1,14 @@
 import { ConflictException } from '@nestjs/common';
-import { EntityManager, EntityTarget, ObjectLiteral } from 'typeorm';
+import { EntityManager, EntityTarget, ObjectLiteral, QueryFailedError } from 'typeorm';
+
+function isLockNotAvailable(error: unknown): boolean {
+  if (!(error instanceof QueryFailedError)) {
+    return false;
+  }
+  const driverError = (error as QueryFailedError & { driverError?: { code?: string } })
+    .driverError;
+  return driverError?.code === '55P03';
+}
 
 export async function lockRowForUpdateNowait<T extends ObjectLiteral>(
   manager: EntityManager,
@@ -14,9 +23,12 @@ export async function lockRowForUpdateNowait<T extends ObjectLiteral>(
       .setLock('pessimistic_write_or_fail')
       .where(`${alias}.${idColumn} = :id`, { id })
       .getOne();
-  } catch {
-    throw new ConflictException(
-      'This resource is being updated by another request. Please retry.',
-    );
+  } catch (error) {
+    if (isLockNotAvailable(error)) {
+      throw new ConflictException(
+        'This resource is being updated by another request. Please retry.',
+      );
+    }
+    throw error;
   }
 }

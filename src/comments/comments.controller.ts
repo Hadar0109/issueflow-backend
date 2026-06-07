@@ -36,13 +36,13 @@ export class CommentsController {
 
   @HttpCode(200)
   @Patch(':commentId')
-  patch(
+  async patch(
     @Param('ticketId', ParseIntPipe) ticketId: number,
     @Param('commentId', ParseIntPipe) commentId: number,
     @Body() dto: PatchCommentDto,
     @CurrentUser() user: User,
-  ) {
-    return this.commentsService.patch(ticketId, commentId, dto, user.id);
+  ): Promise<void> {
+    await this.commentsService.patch(ticketId, commentId, dto, user.id);
   }
 
   @HttpCode(200)
@@ -51,8 +51,7 @@ export class CommentsController {
     @Param('ticketId', ParseIntPipe) ticketId: number,
     @Param('commentId', ParseIntPipe) commentId: number,
     @CurrentUser() user: User,
-  ) {
+  ): Promise<void> {
     await this.commentsService.delete(ticketId, commentId, user.id);
-    return {};
   }
 }

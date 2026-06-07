@@ -17,7 +17,7 @@ export class DependenciesService {
     private readonly auditService: AuditService,
   ) {}
 
-  async add(ticketId: number, dto: AddDependencyDto, actorId: number) {
+  async add(ticketId: number, dto: AddDependencyDto, actorId: number): Promise<void> {
     const ticket = await this.getActiveTicket(ticketId);
     const blocker = await this.getActiveTicket(dto.blockedBy);
 
@@ -45,7 +45,6 @@ export class DependenciesService {
         metadata: { blockedBy: dto.blockedBy },
       });
     }
-    return {};
   }
 
   async list(ticketId: number) {
@@ -64,7 +63,7 @@ export class DependenciesService {
     }));
   }
 
-  async remove(ticketId: number, blockerId: number, actorId: number) {
+  async remove(ticketId: number, blockerId: number, actorId: number): Promise<void> {
     await this.getActiveTicket(ticketId);
     const dep = await this.dependencyRepository.findOne({
       where: { ticketId, blockedByTicketId: blockerId },
@@ -81,7 +80,6 @@ export class DependenciesService {
       actor: AuditActor.USER,
       metadata: { blockedBy: blockerId },
     });
-    return {};
   }
 
   private async getActiveTicket(id: number): Promise<Ticket> {
@@ -89,7 +87,7 @@ export class DependenciesService {
       where: { id, deletedAt: IsNull() },
     });
     if (!ticket) {
-      throw new BadRequestException('Ticket not found or inactive');
+      throw new NotFoundException('Ticket not found');
     }
     return ticket;
   }

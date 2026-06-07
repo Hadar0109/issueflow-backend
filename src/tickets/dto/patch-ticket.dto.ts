@@ -2,14 +2,19 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
+  MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { TicketPriority, TicketStatus } from '../../common/enums';
 
 export class PatchTicketDto {
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
   title?: string;
 
   @IsOptional()

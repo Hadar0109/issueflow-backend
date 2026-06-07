@@ -80,7 +80,7 @@ export class ProjectsService {
     return this.toResponse(project);
   }
 
-  async update(id: number, dto: UpdateProjectDto, actorId: number) {
+  async update(id: number, dto: UpdateProjectDto, actorId: number): Promise<void> {
     const project = await this.projectRepository.findOne({
       where: { id, deletedAt: IsNull() },
     });
@@ -99,7 +99,6 @@ export class ProjectsService {
       performedBy: actorId,
       actor: AuditActor.USER,
     });
-    return this.toResponse(updated);
   }
 
   async softDelete(id: number, actorId: number): Promise<void> {
@@ -143,7 +142,7 @@ export class ProjectsService {
     });
   }
 
-  async restore(id: number, actorId: number) {
+  async restore(id: number, actorId: number): Promise<void> {
     const project = await this.projectRepository.findOne({
       where: { id },
       withDeleted: true,
@@ -183,8 +182,6 @@ export class ProjectsService {
         actor: AuditActor.USER,
       });
     });
-
-    return this.findOne(id);
   }
 
   async assertActiveProject(projectId: number): Promise<Project> {

@@ -91,12 +91,17 @@ describe('Comments (e2e)', () => {
       .send({ authorId: author.id, content: `@${u1.username}` })
       .expect(200);
 
-    const patched = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .patch(`/tickets/${ticket.id}/comments/${created.body.id}`)
       .set(authHeader(authorToken))
       .send({ content: `@${u2.username}` })
       .expect(200);
-    expect(patched.body.mentionedUsers[0].username).toBe(u2.username);
+
+    const listed = await request(app.getHttpServer())
+      .get(`/tickets/${ticket.id}/comments`)
+      .set(authHeader(adminToken))
+      .expect(200);
+    expect(listed.body[0].mentionedUsers[0].username).toBe(u2.username);
   });
 
   it('comment on soft-deleted ticket → 404', async () => {

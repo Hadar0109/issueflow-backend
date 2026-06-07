@@ -19,12 +19,12 @@ export class DependenciesController {
 
   @HttpCode(200)
   @Post()
-  add(
+  async add(
     @Param('ticketId', ParseIntPipe) ticketId: number,
     @Body() dto: AddDependencyDto,
     @CurrentUser() user: User,
-  ) {
-    return this.dependenciesService.add(ticketId, dto, user.id);
+  ): Promise<void> {
+    await this.dependenciesService.add(ticketId, dto, user.id);
   }
 
   @Get()
@@ -34,11 +34,11 @@ export class DependenciesController {
 
   @HttpCode(200)
   @Delete(':blockerId')
-  remove(
+  async remove(
     @Param('ticketId', ParseIntPipe) ticketId: number,
     @Param('blockerId', ParseIntPipe) blockerId: number,
     @CurrentUser() user: User,
-  ) {
-    return this.dependenciesService.remove(ticketId, blockerId, user.id);
+  ): Promise<void> {
+    await this.dependenciesService.remove(ticketId, blockerId, user.id);
   }
 }

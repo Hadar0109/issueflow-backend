@@ -35,7 +35,7 @@ export class AttachmentsController {
     @Param('ticketId', ParseIntPipe) ticketId: number,
     @Param('attachmentId', ParseIntPipe) attachmentId: number,
     @CurrentUser() user: User,
-  ) {
-    return this.attachmentsService.delete(ticketId, attachmentId, user.id);
+  ): Promise<void> {
+    await this.attachmentsService.delete(ticketId, attachmentId, user.id);
   }
 }

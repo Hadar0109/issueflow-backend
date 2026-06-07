@@ -1,16 +1,16 @@
 import { TicketStatus } from '../common/enums';
 import { Ticket } from './entities/ticket.entity';
 
-export function computeIsOverdue(ticket: Ticket, now: Date): boolean {
+/**
+ * API `isOverdue` reflects the persisted flag set by escalation at CRITICAL (BR-04),
+ * not immediate calendar overdue (BR-06). Manual priority PATCH clears the flag (BR-05).
+ */
+export function computeIsOverdue(ticket: Ticket, _now: Date): boolean {
   if (ticket.status === TicketStatus.DONE) {
     return false;
   }
   if (!ticket.dueDate) {
     return false;
   }
-  if (ticket.isOverdue) {
-    return true;
-  }
-  // BR-05: when isOverdue was cleared (e.g. manual priority PATCH), keep false until escalation sets the flag again
-  return false;
+  return ticket.isOverdue;
 }

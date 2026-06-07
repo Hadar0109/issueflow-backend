@@ -35,4 +35,18 @@ export class ProjectMembershipService {
       .andWhere('user.role = :role', { role: UserRole.DEVELOPER })
       .getMany();
   }
+
+  async unlinkIfNoActiveTickets(projectId: number, userId: number): Promise<void> {
+    const activeTicketCount = await this.projectMemberRepository.manager
+      .createQueryBuilder()
+      .from('tickets', 'ticket')
+      .where('ticket.projectId = :projectId', { projectId })
+      .andWhere('ticket.assigneeId = :userId', { userId })
+      .andWhere('ticket.deletedAt IS NULL')
+      .getCount();
+
+    if (activeTicketCount === 0) {
+      await this.projectMemberRepository.delete({ projectId, userId });
+    }
+  }
 }

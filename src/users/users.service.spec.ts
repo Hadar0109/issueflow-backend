@@ -28,7 +28,7 @@ describe('UsersService.delete', () => {
   const audit = { log: jest.fn() };
   const manager = {
     find: jest.fn().mockResolvedValue([]),
-    delete: jest.fn(),
+    delete: jest.fn().mockResolvedValue({ affected: 0 }),
     update: jest.fn(),
   };
   const transactionRunner = {

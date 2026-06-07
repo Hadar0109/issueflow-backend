@@ -57,12 +57,12 @@ export class ProjectsController {
 
   @HttpCode(200)
   @Patch(':projectId')
-  update(
+  async update(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Body() dto: UpdateProjectDto,
     @CurrentUser() user: User,
-  ) {
-    return this.projectsService.update(projectId, dto, user.id);
+  ): Promise<void> {
+    await this.projectsService.update(projectId, dto, user.id);
   }
 
   @HttpCode(200)
@@ -70,19 +70,18 @@ export class ProjectsController {
   async remove(
     @Param('projectId', ParseIntPipe) projectId: number,
     @CurrentUser() user: User,
-  ) {
+  ): Promise<void> {
     await this.projectsService.softDelete(projectId, user.id);
-    return {};
   }
 
   @HttpCode(200)
   @Post(':projectId/restore')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
-  restore(
+  async restore(
     @Param('projectId', ParseIntPipe) projectId: number,
     @CurrentUser() user: User,
-  ) {
-    return this.projectsService.restore(projectId, user.id);
+  ): Promise<void> {
+    await this.projectsService.restore(projectId, user.id);
   }
 }

@@ -80,6 +80,21 @@ describe('Dependencies (e2e)', () => {
     expect(list.body.some((d: { id: number }) => d.id === t2.id)).toBe(true);
   });
 
+  it('dependency on soft-deleted ticket → 404', async () => {
+    const project = await createProject(app, adminToken, 1, `DelBlk ${suffix}`);
+    const blocked = await createTicket(app, adminToken, project.id);
+    const blocker = await createTicket(app, adminToken, project.id);
+    await request(app.getHttpServer())
+      .delete(`/tickets/${blocker.id}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/tickets/${blocked.id}/dependencies`)
+      .set(authHeader(adminToken))
+      .send({ blockedBy: blocker.id })
+      .expect(404);
+  });
+
   it('DELETE dependency', async () => {
     const project = await createProject(app, adminToken, 1, `RmDep ${suffix}`);
     const blocked = await createTicket(app, adminToken, project.id);

@@ -74,7 +74,7 @@ export class CommentsService {
     commentId: number,
     dto: PatchCommentDto,
     jwtUserId: number,
-  ) {
+  ): Promise<void> {
     await this.assertActiveTicket(ticketId);
 
     const saved = await this.transactionRunner.withQueryRunner(async (queryRunner) => {
@@ -89,7 +89,7 @@ export class CommentsService {
         throw new NotFoundException('Comment not found');
       }
       if (comment.authorId !== jwtUserId) {
-        throw new BadRequestException('authorId must match authenticated user');
+        throw new BadRequestException('Only the comment author can update this comment');
       }
 
       comment.content = dto.content;
@@ -105,7 +105,6 @@ export class CommentsService {
     });
 
     await this.mentionParserService.rebuildMentions(saved.id, dto.content);
-    return this.toResponse(saved);
   }
 
   async delete(ticketId: number, commentId: number, jwtUserId: number) {
@@ -117,7 +116,7 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
     if (comment.authorId !== jwtUserId) {
-      throw new BadRequestException('authorId must match authenticated user');
+      throw new BadRequestException('Only the comment author can delete this comment');
     }
     await this.commentRepository.delete(commentId);
     await this.auditService.log({

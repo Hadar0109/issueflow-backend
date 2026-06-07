@@ -26,6 +26,9 @@ Approved decisions here MUST be reflected in `plan.md` during planning.
 | PD-08 | **Initial bootstrap**: Use a seeded initial ADMIN user; seed credentials documented in `run.md`; no API contract changes | Resolved OD-04 |
 | PD-09 | **Login credentials (MVP)**: `POST /auth/login` keeps `username` + `password` per README; `password` is syntactically required. MVP validates that the username exists; password persistence and verification are not required in MVP. `POST /users` body unchanged (no `password` field). *Plan alternative*: optional `password` on `POST /users` with full username+password auth — only if explicitly chosen in plan without changing paths | Resolved OD-02 |
 | PD-10 | **User deletion**: Hard delete with cascade cleanup (Option 1). Guards per BR-14 only (project owner, assignee on non-DONE ticket). Authored comments do **not** block delete. On delete: remove authored comments and related mentions, remove received mention rows, remove `ProjectMember` rows, `SET NULL` `assigneeId` on DONE-assigned tickets, retain `audit_logs.performedBy` user id. No user soft-delete | User-delete review 2026-06-06 |
+| PD-11 | **Comment edit/delete authorization**: Only the comment author may PATCH or DELETE a comment (in addition to `authorId` match on POST per PD-04). JWT required for all comment endpoints (FR-AUTH-003). | Postman QA 2026-06-07 |
+| PD-12 | **API `isOverdue` timing**: The response field reflects the persisted DB flag. It becomes `true` only when the escalation scheduler finds a non-DONE ticket at `CRITICAL` priority with `dueDate` in the past (BR-04). It is **not** set immediately when `dueDate` passes. Manual priority PATCH clears the flag (BR-05). Calendar overdue (past `dueDate`) drives escalation, not the API flag directly (BR-06). | Postman QA 2026-06-07 |
+| PD-13 | **ProjectMember cleanup on ticket delete**: When a ticket is soft-deleted, if its assignee has no remaining active tickets in that project, remove the assignee's `ProjectMember` row for that project. | Postman QA 2026-06-07 |
 
 ### PD-09 detail
 
@@ -42,6 +45,8 @@ when their username exists (any syntactically valid password in MVP).
   no longer exists (`GET /users/:performedBy` may return `404`).
 - Per-comment `DELETE` audit entries are **not** required for cascade-deleted comments (only
   the user `DELETE` action is audited).
+- Cascade mention removal is recorded on the user `DELETE` audit entry via `metadata`
+  (`cascadeAuthoredMentions`, `cascadeReceivedMentions`) — no separate `MENTION` audit rows.
 
 ---
 
@@ -202,3 +207,4 @@ See `research.md` IC-10 and `plan.md`.
 | 2026-06-06 | Pre-task review: IC-11 → Option E (`ProjectMember`); stack → NestJS 11; cascade audit; validation/e2e matrix in plan.md |
 | 2026-06-06 | IC-11 revised: strict `ProjectMember` source of truth, bootstrap removed; username no-whitespace rule added |
 | 2026-06-06 | PD-10: user hard delete with cascade (Option 1); retain audit `performedBy`; remove comment-author delete block |
+| 2026-06-07 | Postman QA fixes: PD-11–PD-13; attachment MIME tighten; CSV column validation; ticket delete dependency guard; empty response bodies per README |

@@ -1,12 +1,13 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 import { UserRole } from '../../common/enums';
 
 export class UpdateUserDto {
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsString()
+  @IsNotEmpty()
   fullName?: string;
 
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsEnum(UserRole)
   role?: UserRole;
 }

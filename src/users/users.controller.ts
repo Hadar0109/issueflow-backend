@@ -54,12 +54,12 @@ export class UsersController {
 
   @HttpCode(200)
   @Post('update/:userId')
-  update(
+  async update(
     @Param('userId', ParseIntPipe) userId: number,
     @Body() dto: UpdateUserDto,
     @CurrentUser() user: User,
-  ) {
-    return this.usersService.update(userId, dto, user.id);
+  ): Promise<void> {
+    await this.usersService.update(userId, dto, user.id);
   }
 
   @HttpCode(200)
@@ -67,8 +67,7 @@ export class UsersController {
   async remove(
     @Param('userId', ParseIntPipe) userId: number,
     @CurrentUser() user: User,
-  ) {
+  ): Promise<void> {
     await this.usersService.delete(userId, user.id);
-    return {};
   }
 }

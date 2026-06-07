@@ -21,6 +21,7 @@ import { computeIsOverdue } from './overdue-calculator';
 import { CLOCK, Clock } from '../common/utils/clock';
 import { Inject } from '@nestjs/common';
 import { TransactionRunner } from '../common/database/transaction-runner';
+import { TicketDependency } from '../dependencies/entities/ticket-dependency.entity';
 
 @Injectable()
 export class TicketsService {
@@ -35,6 +36,8 @@ export class TicketsService {
     private readonly transactionRunner: TransactionRunner,
     @InjectRepository(Ticket)
     private readonly ticketRepository: Repository<Ticket>,
+    @InjectRepository(TicketDependency)
+    private readonly dependencyRepository: Repository<TicketDependency>,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -115,8 +118,8 @@ export class TicketsService {
     return this.toResponse(ticket);
   }
 
-  async patch(id: number, dto: PatchTicketDto, actorId: number) {
-    return this.transactionRunner.withQueryRunner(async (queryRunner) => {
+  async patch(id: number, dto: PatchTicketDto, actorId: number): Promise<void> {
+    await this.transactionRunner.withQueryRunner(async (queryRunner) => {
       const ticket = await lockRowForUpdateNowait(
         queryRunner.manager,
         Ticket,
@@ -172,7 +175,6 @@ export class TicketsService {
         performedBy: actorId,
         actor: AuditActor.USER,
       });
-      return this.toResponse(saved);
     });
   }
 
@@ -181,17 +183,35 @@ export class TicketsService {
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
     }
-    await this.ticketRepository.softDelete(id);
-    await this.auditService.log({
-      action: AuditAction.SOFT_DELETE,
-      entityType: AuditEntityType.TICKET,
-      entityId: id,
-      performedBy: actorId,
-      actor: AuditActor.USER,
+
+    await this.assertNoActiveDependencies(id);
+
+    await this.transactionRunner.run(async (manager) => {
+      await manager.softDelete(Ticket, { id });
+      await manager
+        .createQueryBuilder()
+        .delete()
+        .from(TicketDependency)
+        .where('ticketId = :id OR blockedByTicketId = :id', { id })
+        .execute();
+      await this.auditService.log({
+        action: AuditAction.SOFT_DELETE,
+        entityType: AuditEntityType.TICKET,
+        entityId: id,
+        performedBy: actorId,
+        actor: AuditActor.USER,
+      });
     });
+
+    if (ticket.assigneeId) {
+      await this.projectMembershipService.unlinkIfNoActiveTickets(
+        ticket.projectId,
+        ticket.assigneeId,
+      );
+    }
   }
 
-  async restore(id: number, actorId: number) {
+  async restore(id: number, actorId: number): Promise<void> {
     const ticket = await this.ticketRepository.findOne({
       where: { id },
       withDeleted: true,
@@ -214,7 +234,28 @@ export class TicketsService {
       performedBy: actorId,
       actor: AuditActor.USER,
     });
-    return this.findOne(id);
+  }
+
+  private async assertNoActiveDependencies(ticketId: number): Promise<void> {
+    const asDependent = await this.dependencyRepository
+      .createQueryBuilder('dep')
+      .innerJoin('dep.blockedByTicket', 'blocker')
+      .where('dep.ticketId = :ticketId', { ticketId })
+      .andWhere('blocker.deletedAt IS NULL')
+      .getCount();
+
+    const asBlocker = await this.dependencyRepository
+      .createQueryBuilder('dep')
+      .innerJoin('dep.ticket', 'dependent')
+      .where('dep.blockedByTicketId = :ticketId', { ticketId })
+      .andWhere('dependent.deletedAt IS NULL')
+      .getCount();
+
+    if (asDependent + asBlocker > 0) {
+      throw new BadRequestException(
+        'Cannot delete ticket while dependency relationships exist. Remove all dependencies first.',
+      );
+    }
   }
 
   toResponse(ticket: Ticket) {

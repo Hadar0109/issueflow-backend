@@ -5,10 +5,8 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIMES = new Set([
   'image/png',
   'image/jpeg',
-  'image/gif',
   'application/pdf',
   'text/plain',
-  'text/csv',
 ]);
 
 @Injectable()

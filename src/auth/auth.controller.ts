@@ -19,7 +19,7 @@ export class AuthController {
 
   @HttpCode(200)
   @Post('logout')
-  async logout(@CurrentUser() user: User, @Req() req: Request) {
+  async logout(@CurrentUser() user: User, @Req() req: Request): Promise<void> {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       const decoded = JSON.parse(
@@ -27,7 +27,6 @@ export class AuthController {
       ) as { jti: string; exp: number };
       await this.authService.logout(user, decoded.jti, decoded.exp);
     }
-    return {};
   }
 
   @Get('me')

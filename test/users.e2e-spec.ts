@@ -64,12 +64,17 @@ describe('Users (e2e)', () => {
 
   it('POST /users/update/:userId updates user; empty body → 400', async () => {
     const dev = await createDeveloper(app, adminToken, `${suffix}_u`);
-    const res = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .post(`/users/update/${dev.id}`)
       .set(authHeader(adminToken))
       .send({ fullName: 'Updated Name' })
       .expect(200);
-    expect(res.body.fullName).toBe('Updated Name');
+
+    const updated = await request(app.getHttpServer())
+      .get(`/users/${dev.id}`)
+      .set(authHeader(adminToken))
+      .expect(200);
+    expect(updated.body.fullName).toBe('Updated Name');
 
     await request(app.getHttpServer())
       .post(`/users/update/${dev.id}`)

@@ -71,7 +71,7 @@ export class UsersService {
     return this.toResponse(user);
   }
 
-  async update(id: number, dto: UpdateUserDto, actorId: number) {
+  async update(id: number, dto: UpdateUserDto, actorId: number): Promise<void> {
     if (!dto.fullName && !dto.role) {
       throw new BadRequestException('At least one of fullName or role must be provided');
     }
@@ -92,7 +92,6 @@ export class UsersService {
       performedBy: actorId,
       actor: AuditActor.USER,
     });
-    return this.toResponse(updated);
   }
 
   async delete(id: number, actorId: number): Promise<void> {
@@ -119,11 +118,16 @@ export class UsersService {
     await this.transactionRunner.run(async (manager) => {
       const authoredComments = await manager.find(Comment, { where: { authorId: id } });
       const commentIds = authoredComments.map((c) => c.id);
+      let authoredMentionsRemoved = 0;
       if (commentIds.length > 0) {
-        await manager.delete(Mention, { commentId: In(commentIds) });
+        const authoredMentionResult = await manager.delete(Mention, {
+          commentId: In(commentIds),
+        });
+        authoredMentionsRemoved = authoredMentionResult.affected ?? 0;
         await manager.delete(Comment, { authorId: id });
       }
-      await manager.delete(Mention, { userId: id });
+      const receivedMentionResult = await manager.delete(Mention, { userId: id });
+      const receivedMentionsRemoved = receivedMentionResult.affected ?? 0;
       await manager.delete(ProjectMember, { userId: id });
       await manager.update(Ticket, { assigneeId: id }, { assigneeId: null });
       await this.auditService.log({
@@ -132,6 +136,11 @@ export class UsersService {
         entityId: id,
         performedBy: actorId,
         actor: AuditActor.USER,
+        metadata: {
+          cascadeComments: commentIds.length,
+          cascadeAuthoredMentions: authoredMentionsRemoved,
+          cascadeReceivedMentions: receivedMentionsRemoved,
+        },
       });
       await manager.delete(User, { id });
     });

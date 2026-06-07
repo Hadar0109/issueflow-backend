@@ -59,7 +59,7 @@ export class AttachmentsService {
     };
   }
 
-  async delete(ticketId: number, attachmentId: number, actorId: number) {
+  async delete(ticketId: number, attachmentId: number, actorId: number): Promise<void> {
     const attachment = await this.attachmentRepository.findOne({
       where: { id: attachmentId, ticketId },
     });
@@ -75,6 +75,5 @@ export class AttachmentsService {
       performedBy: actorId,
       actor: AuditActor.USER,
     });
-    return {};
   }
 }
