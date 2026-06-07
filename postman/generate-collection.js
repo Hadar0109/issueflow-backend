@@ -127,9 +127,15 @@ const collection = {
       }),
       req('AUTH-005 Login case-insensitive username', 'POST', '/auth/login', {
         noAuth: true,
-        body: rawJson({ username: 'ADMIN', password: 'any' }),
+        body: rawJson({ username: 'ADMIN', password: '{{adminPassword}}' }),
         events: [expectStatus(200)],
-        description: 'TC-AUTH-004: Username match is case-insensitive (PD-09).',
+        description: 'TC-AUTH-004: Username match is case-insensitive with correct password.',
+      }),
+      req('AUTH-011 Login wrong admin password → 401', 'POST', '/auth/login', {
+        noAuth: true,
+        body: rawJson({ username: '{{adminUsername}}', password: 'wrong-password' }),
+        events: [expectStatus(401)],
+        description: 'TC-AUTH-002b: Seeded admin password verified with bcrypt.',
       }),
       req('AUTH-006 Protected route without token → 401', 'GET', '/users', {
         noAuth: true,
@@ -183,11 +189,17 @@ const collection = {
         ],
         description: 'TC-USER-002: Create user with README fields.',
       }),
-      req('USER-003 Login as new DEVELOPER', 'POST', '/auth/login', {
+      req('USER-003 Login as new DEVELOPER (first login enrolls password)', 'POST', '/auth/login', {
         noAuth: true,
-        body: rawJson({ username: '{{developerUsername}}', password: 'anypassword' }),
+        body: rawJson({ username: '{{developerUsername}}', password: '{{developerPassword}}' }),
         events: [expectStatus(200), saveToken('developerToken')],
-        description: 'TC-USER-003: PD-09 login by username existence.',
+        description: 'TC-USER-003: PD-09 first login enrolls password.',
+      }),
+      req('USER-003b Login as new DEVELOPER wrong password → 401', 'POST', '/auth/login', {
+        noAuth: true,
+        body: rawJson({ username: '{{developerUsername}}', password: 'wrong-password' }),
+        events: [expectStatus(401)],
+        description: 'TC-USER-003b: Subsequent login verifies bcrypt.',
       }),
       req('USER-004 GET /users/:userId', 'GET', '/users/{{developerUserId}}', {
         events: [expectStatus(200)],
@@ -903,7 +915,7 @@ const collection = {
       }),
       req('BR18-002 Login deletable user', 'POST', '/auth/login', {
         noAuth: true,
-        body: rawJson({ username: 'deletable_{{testRunSuffix}}', password: 'x' }),
+        body: rawJson({ username: 'deletable_{{testRunSuffix}}', password: '{{developerPassword}}' }),
         events: [expectStatus(200), test(['pm.environment.set("deletableToken", pm.response.json().accessToken);'])],
       }),
       req('BR18-003 Create DONE ticket for deletable user', 'POST', '/tickets', {

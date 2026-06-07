@@ -60,7 +60,7 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
 
-    const user = await this.usersRepository.save(dto);
+    const user = await this.usersRepository.save({ ...dto, passwordHash: null });
     await this.auditService.log({
       action: AuditAction.CREATE,
       entityType: AuditEntityType.USER,

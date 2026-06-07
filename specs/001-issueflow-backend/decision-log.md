@@ -24,7 +24,7 @@ Approved decisions here MUST be reflected in `plan.md` during planning.
 | PD-06 | Unknown `@mentions` ignored silently | Spec |
 | PD-07 | Export excludes soft-deleted tickets | Spec |
 | PD-08 | **Initial bootstrap**: Use a seeded initial ADMIN user; seed credentials documented in `run.md`; no API contract changes | Resolved OD-04 |
-| PD-09 | **Login credentials (MVP)**: `POST /auth/login` keeps `username` + `password` per README; `password` is syntactically required. MVP validates that the username exists; password persistence and verification are not required in MVP. `POST /users` body unchanged (no `password` field). *Plan alternative*: optional `password` on `POST /users` with full username+password auth — only if explicitly chosen in plan without changing paths | Resolved OD-02 |
+| PD-09 | **Login credentials (MVP)**: `POST /auth/login` keeps `username` + `password` per README; both syntactically required. Users created via `POST /users` have `passwordHash = null`; first login enrolls bcrypt hash of supplied password; subsequent logins verify bcrypt. Seeded ADMIN (PD-08) verifies predefined password normally. `POST /users` body unchanged (no `password` field). | Resolved OD-02 |
 | PD-10 | **User deletion**: Hard delete with cascade cleanup (Option 1). Guards per BR-14 only (project owner, assignee on non-DONE ticket). Authored comments do **not** block delete. On delete: remove authored comments and related mentions, remove received mention rows, remove `ProjectMember` rows, `SET NULL` `assigneeId` on DONE-assigned tickets, retain `audit_logs.performedBy` user id. No user soft-delete | User-delete review 2026-06-06 |
 | PD-11 | **Comment edit/delete authorization**: Only the comment author may PATCH or DELETE a comment (in addition to `authorId` match on POST per PD-04). JWT required for all comment endpoints (FR-AUTH-003). | Postman QA 2026-06-07 |
 | PD-12 | **API `isOverdue` timing**: The response field reflects the persisted DB flag. It becomes `true` only when the escalation scheduler finds a non-DONE ticket at `CRITICAL` priority with `dueDate` in the past (BR-04). It is **not** set immediately when `dueDate` passes. Manual priority PATCH clears the flag (BR-05). Calendar overdue (past `dueDate`) drives escalation, not the API flag directly (BR-06). | Postman QA 2026-06-07 |
@@ -32,9 +32,12 @@ Approved decisions here MUST be reflected in `plan.md` during planning.
 
 ### PD-09 detail
 
-Preserves README registration body. Login contract unchanged. Seeded ADMIN (PD-08) can
-always log in via username-existence check. Users created via `POST /users` can log in
-when their username exists (any syntactically valid password in MVP).
+Preserves README registration body. Login contract unchanged (same request/response fields).
+
+- `POST /users` creates users with `passwordHash = null` (no `password` field).
+- First `POST /auth/login` for such a user requires non-empty password, stores bcrypt hash, returns JWT.
+- Later logins verify bcrypt; wrong password → `401`.
+- Seeded ADMIN (PD-08) has predefined bcrypt hash; must supply correct password on every login.
 
 ### PD-10 detail
 

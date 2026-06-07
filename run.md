@@ -6,75 +6,86 @@
 - Docker (for PostgreSQL)
 - npm
 
-## Setup
+---
 
-1. Install dependencies:
+## 1. Install and configure
+
+From the project root:
 
 ```bash
 npm install
-```
-
-2. Copy environment variables:
-
-```bash
 cp .env.example .env
 ```
 
-Default values connect to the Docker Compose PostgreSQL instance.
+---
 
-3. Start PostgreSQL:
+## 2. Start PostgreSQL
 
 ```bash
 docker compose -f compose.yml up -d db
 ```
 
-4. Build the application:
+---
+
+## 3. Prepare the database
 
 ```bash
 npm run build
-```
-
-5. Run database migrations (includes seeded ADMIN user):
-
-```bash
 npm run migration:run
 ```
 
-## Seeded ADMIN Credentials
+Migrations create the database schema and seed an initial ADMIN user.
 
-| Field | Value |
-|-------|-------|
-| Username | `admin` |
-| Password (stored, bcrypt) | `admin123` |
+---
 
-### MVP Login Semantics (PD-09)
+## 4. Start the API
 
-`POST /auth/login` requires non-empty `username` and `password` per README. In MVP:
+```bash
+npm run start:dev
+```
 
-- Login succeeds when the username exists (case-insensitive).
-- **Password is not verified** — any non-empty password works for existing users.
-- Unknown username returns `401`.
-- Users created via `POST /users` have no stored password; they log in by username existence only.
+The server runs at **http://localhost:3000**. Leave this terminal open.
+
+---
+
+## 5. First Login (Required)
+
+Use the seeded ADMIN account:
+
+| Field    | Value      |
+|----------|------------|
+| Username | `admin`    |
+| Password | `admin123` |
 
 Example:
 
 ```bash
 curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"any-non-empty-password"}'
+  -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
 ```
 
-## Run the Application
+The response contains a JWT access token required for protected endpoints.
 
-```bash
-# Development (watch mode)
-npm run start:dev
+---
 
-# Production build
-npm run start:prod
-```
+##  Authentication Notes
 
-API listens on `http://localhost:3000`.
+- The seeded ADMIN user authenticates with bcrypt.
+- Users created via POST /users are created without a password.
+- On first login, the supplied password is hashed and stored.
+- Subsequent logins verify the stored hash.
+- Invalid credentials return 401 Unauthorized.
+
+---
+
+## Attachment Storage
+
+Uploaded files are stored under `storage/attachments/`. 
+
+The directory is created automatically on startup.
+
+---
 
 ## Run Tests
 
@@ -86,14 +97,6 @@ npm test
 npm run test:e2e
 ```
 
-## Migration Commands
+---
 
-```bash
-npm run migration:run      # Apply pending migrations
-npm run migration:revert   # Revert last migration
-npm run migration:generate -- src/database/migrations/MigrationName
-```
 
-## Attachment Storage
-
-Uploaded files are stored under `storage/attachments/` (gitignored). The directory is created automatically on startup.

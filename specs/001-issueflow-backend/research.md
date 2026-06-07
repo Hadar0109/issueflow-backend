@@ -279,11 +279,11 @@ TypeORM seed migration creates initial ADMIN (`username: admin`); credentials do
 
 ### PD-09 — Rationale and expected behavior
 
-**Why username-existence login (not full password verification)**:
+**Why first-login password enrollment (not optional password on `POST /users`)**:
 
 - Preserves README `POST /users` body exactly (no `password` field per contract).
 - README login body remains `{ username, password }`; both fields syntactically required.
-- Avoids undocumented first-login or set-password endpoints.
+- No new endpoints or request/response fields — enrollment happens on first `POST /auth/login`.
 - Approved in `decision-log.md` (PD-09) after spec clarification.
 
 **Expected runtime behavior**:
@@ -292,17 +292,16 @@ TypeORM seed migration creates initial ADMIN (`username: admin`); credentials do
 |------|----------|
 | `POST /auth/login` | Reject empty `username` or `password` → `401` |
 | Unknown username | `401` (spec: invalid login credentials) |
-| Known username | `200` with JWT (`accessToken`, `tokenType: Bearer`, `expiresIn: 3600`) — **password value not verified in MVP** |
-| `POST /users` | Creates user without `password`; user can log in once username exists |
-| Seeded ADMIN | Logs in via username existence; `passwordHash` stored but not checked in MVP |
+| Known user, `passwordHash = null` | Store bcrypt hash of supplied password; `200` with JWT |
+| Known user, `passwordHash` set | Verify bcrypt; wrong password → `401`; correct → `200` with JWT |
+| `POST /users` | Creates user with `passwordHash = null` (no `password` field) |
+| Seeded ADMIN | Predefined bcrypt hash; password verified on every login |
 
-**Constitution alignment**: Security II requires hashing *stored* passwords — satisfied for
-seeded ADMIN. Users created via API have no stored password (nothing to hash). Full bcrypt
-verification deferred; decision-log notes optional future enhancement via `POST /users`
-password field only if contract amendment approved.
+**Constitution alignment**: Security II requires hashing stored passwords — satisfied for
+seeded ADMIN and for API-created users after first login.
 
-**Grader documentation**: `run.md` MUST state explicitly that MVP login validates username
-existence only and that any non-empty password succeeds for existing users.
+**Grader documentation**: `run.md` MUST state login semantics: seeded admin password
+verification, first-login enrollment for API-created users, bcrypt on subsequent logins.
 
 ---
 

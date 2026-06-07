@@ -127,7 +127,7 @@ share the same pool: linked `DEVELOPER` members only. See [research.md § IC-11]
 | PD-06 | `MentionParserService` ignores unknown @mentions |
 | PD-07 | Export query excludes `deletedAt IS NOT NULL` |
 | PD-08 | Seed migration creates ADMIN; credentials in `run.md` |
-| PD-09 | Login checks username existence; `POST /users` unchanged — see [PD-09 Authentication](#pd-09-authentication-mvp) |
+| PD-09 | First-login password enrollment + bcrypt verify; `POST /users` unchanged — see [PD-09 Authentication](#pd-09-authentication-mvp) |
 | PD-10 | Hard delete + cascade (BR-18); audit `performedBy` retained — see [User Deletion](#user-deletion-pd-10) |
 
 ### PD-09 Authentication (MVP)
@@ -137,11 +137,12 @@ share the same pool: linked `DEVELOPER` members only. See [research.md § IC-11]
 | Concern | Decision |
 |---------|----------|
 | Login body | `{ username, password }` per README; both non-empty |
-| Password verification | **Not performed in MVP** — username existence suffices for `200` |
+| Password verification | bcrypt when `passwordHash` is set; wrong password → `401` |
+| First login enrollment | Users created via `POST /users` have `passwordHash = null`; first login stores bcrypt hash of supplied password |
 | Unknown username | `401` |
-| `POST /users` | No `password` field; created users log in by username existence |
-| Seeded ADMIN | `passwordHash` stored (bcrypt) for constitution; not verified in MVP |
-| Documentation | `run.md` MUST state MVP login semantics explicitly for graders |
+| `POST /users` | No `password` field; created users have `passwordHash = null` |
+| Seeded ADMIN | Predefined bcrypt `passwordHash`; verified on every login |
+| Documentation | `run.md` MUST state login semantics explicitly for graders |
 
 Full rationale: [research.md § PD-08/PD-09](./research.md#pd-08--pd-09-bootstrap-and-mvp-authentication).
 
@@ -402,6 +403,8 @@ repository base or explicit query conditions. ADMIN deleted-list endpoints inver
 | Attachment size/type/content | `FileValidationService` | `400` |
 | Login: non-empty username + password | `AuthService` | `401` |
 | Unknown username on login | `AuthService` | `401` |
+| Wrong password when hash set | `AuthService` | `401` |
+| First login enrolls password when hash null | `AuthService` | `200` + JWT |
 | Duplicate username/email (CI) | `UsersService` | `409` |
 
 Invalid domain state → throw `BadRequestException`, `ConflictException`, or `NotFoundException`;
@@ -724,7 +727,7 @@ Feature modules map 1:1 to README API groups. Tests split unit (`src/`) and e2e 
 | Risk | Mitigation |
 |------|------------|
 | `FOR UPDATE NOWAIT` under high contention returns many 409s | Acceptable for assignment scale; clients retry |
-| MVP login without password verification (PD-09) | Approved PD-09; seed ADMIN hashed; document in `run.md` |
+| First-login password enrollment + bcrypt verify (PD-09) | Approved PD-09; seed ADMIN hashed; document in `run.md` |
 | NestJS 10 → 11 upgrade | Follow IC-08 migration notes; re-run e2e after upgrade |
 | Scheduler timing flaky in e2e | Injectable `Clock`; unit test escalation logic |
 | File upload attacks | IC-04 three-layer validation; store outside web root |

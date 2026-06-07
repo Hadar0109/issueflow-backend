@@ -37,7 +37,7 @@ describe('Contract sweep (e2e)', () => {
     // Auth
     const login = await request(server)
       .post('/auth/login')
-      .send({ username: 'admin', password: 'x' })
+      .send({ username: 'admin', password: 'admin123' })
       .expect(200);
     expect(login.body.accessToken).toBeDefined();
 

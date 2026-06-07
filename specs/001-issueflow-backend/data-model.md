@@ -42,7 +42,7 @@ ProjectMember: internal linkage for IC-11 “DEVELOPER in the project”; not ex
 | email | varchar(255) | NOT NULL, unique (case-insensitive) | PD-05 |
 | fullName | varchar(255) | NOT NULL | |
 | role | enum | `ADMIN`, `DEVELOPER` | FR-USER-002 |
-| passwordHash | varchar(255) | NULLABLE | Seeded ADMIN only (PD-09); not in API |
+| passwordHash | varchar(255) | NULLABLE | Seeded ADMIN has bcrypt hash (PD-08); API-created users start `NULL`, enrolled on first login (PD-09); not in API |
 | createdAt | timestamptz | NOT NULL, default now() | Tie-break for auto-assign (BR-07) |
 | updatedAt | timestamptz | NOT NULL | Internal concurrency metadata |
 
@@ -237,7 +237,7 @@ Do **not** add `@ManyToOne(() => User)`, `@JoinColumn`, or a PostgreSQL FK const
 | Dependency | `blockedBy` exists, same project, **both tickets active** (not soft-deleted), not self |
 | Attachment | ≤10 MB; allowed MIME + magic bytes; parent ticket active |
 | Import | `projectId` active; row rules per BR-16/PD-01 |
-| Auth login | non-empty `username` and `password` (PD-09) |
+| Auth login | non-empty `username` and `password`; bcrypt verify when hash set; first login enrolls hash when `passwordHash` is null (PD-09) |
 
 ---
 

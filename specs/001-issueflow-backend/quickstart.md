@@ -35,19 +35,21 @@ Environment variables (minimum):
 1. Login as seeded ADMIN:
    ```http
    POST /auth/login
-   { "username": "admin", "password": "any-non-empty-password" }
+   { "username": "admin", "password": "admin123" }
    ```
    **Expected**: `200`, `{ accessToken, tokenType: "Bearer", expiresIn: 3600 }`.
 
-2. **PD-09**: Login with unknown username → `401`.
+2. Login with wrong password for seeded ADMIN → `401`.
 
-3. **PD-09**: Login with empty `username` or `password` → `401`.
+3. **PD-09**: Login with unknown username → `401`.
 
-4. `GET /auth/me` with token → `200`, profile matches `GET /users/:userId` (A-03).
+4. **PD-09**: Login with empty `username` or `password` → `401`.
 
-5. `POST /auth/logout` then reuse token → `401`.
+5. `GET /auth/me` with token → `200`, profile matches `GET /users/:userId` (A-03).
 
-6. `GET /users` without token → `401`.
+6. `POST /auth/logout` then reuse token → `401`.
+
+7. `GET /users` without token → `401`.
 
 ---
 
@@ -55,7 +57,7 @@ Environment variables (minimum):
 
 1. Create DEVELOPER via `POST /users` (README body, no `password` field).
 2. `POST /users` with `username: "john doe"` (whitespace) → `400`.
-3. New user logs in with any non-empty password (PD-09) → `200`.
+3. New user first login enrolls password (PD-09) → `200`; wrong password on later login → `401`.
 4. `GET /users` and `GET /users/:userId` → `200`.
 5. `POST /users/update/:userId` with `fullName` and/or `role` → `200`; empty body → `400`.
 6. Duplicate username (case variant) → `409`.

@@ -560,7 +560,9 @@ Per BR-16; RFC 4180 quoting; case-sensitive enum matching to README values.
 
 ### Authentication
 
-Login requires non-empty `username` and `password`.
+Login requires non-empty `username` and `password`. When `passwordHash` is null (API-created
+users), first login enrolls the supplied password (bcrypt). When `passwordHash` is set, login
+verifies bcrypt; wrong password returns `401`.
 
 ---
 
@@ -748,7 +750,7 @@ All product ambiguities are resolved in [`decision-log.md`](decision-log.md)
 | ID | Summary |
 |----|---------|
 | PD-08 | Seeded initial ADMIN; credentials in `run.md` |
-| PD-09 | MVP login: username existence check; no password persistence on `POST /users` |
+| PD-09 | First-login password enrollment; bcrypt verify on subsequent logins; no `password` on `POST /users` |
 | PD-10 | User hard delete with cascade; audit `performedBy` retained |
 
 **Planning (not product decisions)**:

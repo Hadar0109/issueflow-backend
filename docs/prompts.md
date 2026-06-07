@@ -175,17 +175,86 @@ In particular, explain the reasoning behind:
 
 For each, briefly compare alternative structures and confirm whether you would keep the current design unchanged.
 
-### Security Review Prompt
-[paste security review prompt]
+### Implementation Prompt
+/speckit-implement
 
-### Edge Case Review Prompt
-[paste edge cases prompt]
+Implement the plan one phase at a time.
+
+After each phase:
+- Stop.
+- Summarize changes.
+- List modified files.
+- Explain verification performed.
+- Note any risks or open questions.
+
+Wait for approval before continuing to the next phase.
+
+### Postman QA Workspace Generation
+Analyze the current implementation, API contract, specs, business rules, and documentation.
+
+Create:
+
+* Postman Collection
+* Postman Environment
+* MANUAL_TEST_PLAN.md
+
+Cover:
+
+* Main flows
+* Validations
+* Authorization
+* Business rules
+* Edge cases
+* Concurrency
+* Security-related scenarios
+
+Use environment variables, automatic ID extraction, and organize tests by module where appropriate.
+
+Include:
+
+* Coverage summary by module
+* Coverage summary by business rule
+* Edge cases covered
+* Any bugs, inconsistencies, validation gaps, or spec mismatches discovered
+
+The goal is to provide a complete QA workspace for end-to-end validation of the system.
+
+
+### QA Findings Review & Remediation
+Review the implementation, specs, API contract, documentation, and QA findings below.
+
+For each item:
+
+Fix the implementation if needed.
+Update specs/docs/tests if needed.
+Verify the behavior.
+Report what changed, which files were modified, how it was verified, and any additional gaps found.
+
+Items to address:
+
+CSV import – missing required values should fail validation; no undocumented defaults.
+Attachments – allow only approved MIME types.
+Validations – reject empty values for required fields.
+Dependencies – deleted/inactive tickets should return 404.
+Comments authorization – document or align author-only edit/delete behavior.
+Self-dependency – prevent a ticket from blocking itself.
+Ticket delete cleanup – avoid stale dependency records.
+Ticket delete with dependencies – block deletion until dependencies are removed.
+CSV invalid structure – return controlled validation errors, never 500.
+Concurrency – ensure simultaneous updates produce proper 409 conflicts.
+Comments authentication – verify and document expected access rules.
+Mentions audit – document or audit mention cleanup on user deletion.
+ProjectMember cleanup – document and implement the approved behavior.
+Empty responses – ensure endpoints match the API contract.
+Status transitions – verify backward transitions are blocked.
+Overdue behavior – verify alignment with requirements.
+Priority updates – verify escalation/overdue reset behavior.
+isOverdue timing – document the exact lifecycle and trigger conditions.
+
+After completing the review, perform another gap-analysis pass and report any additional bugs, inconsistencies, validation gaps, security issues, or spec/API mismatches discovered.
 
 ### Testing Strategy Prompt
 [paste testing prompt]
-
-### Implementation Prompt
-/speckit-implement
 
 Execute the full implementation plan from `specs/001-issueflow-backend/tasks.md`:
 

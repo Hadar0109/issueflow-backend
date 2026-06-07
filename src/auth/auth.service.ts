@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { User } from '../users/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
@@ -38,6 +39,16 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.passwordHash === null) {
+      user.passwordHash = await bcrypt.hash(dto.password, 10);
+      await this.userRepository.save(user);
+    } else {
+      const valid = await bcrypt.compare(dto.password, user.passwordHash);
+      if (!valid) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
     }
 
     const expiresIn = this.configService.get<number>('jwtExpiresIn', 3600);

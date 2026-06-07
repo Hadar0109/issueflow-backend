@@ -31,7 +31,7 @@ describe('Users (e2e)', () => {
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('POST /users creates DEVELOPER and can login (PD-09)', async () => {
+  it('POST /users creates DEVELOPER and first login enrolls password', async () => {
     const dev = await createDeveloper(app, adminToken, suffix);
     expect(dev.role).toBe('DEVELOPER');
     await loginAs(app, dev.username);

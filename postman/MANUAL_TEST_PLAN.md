@@ -3,7 +3,10 @@
 **Version**: 1.1  
 **Date**: 2026-06-07  
 **API base URL**: `http://localhost:3000`  
-**Seeded admin**: `admin` / `admin123` (password not verified in MVP — any non-empty value works per PD-09)
+**Seeded admin**: `admin` / `admin123` (bcrypt verified on every login)
+
+Password enrollment: users created via `POST /users` have no stored password; first login
+enrolls the supplied password; subsequent logins verify bcrypt.
 
 ## Smoke Test (under 15 minutes)
 
@@ -64,8 +67,9 @@ value,
 |----|-----------------|---------------|----------|-----------|
 | TC-AUTH-001 | AUTH-001 | POST `/auth/login` | 200 + `{ accessToken, tokenType: "Bearer", expiresIn: 3600 }` | FR-AUTH-002, README login shape |
 | TC-AUTH-002 | AUTH-003 | POST `/auth/login` (unknown user) | 401 | Invalid credentials handling |
+| TC-AUTH-002b | AUTH-011 | POST `/auth/login` (wrong admin password) | 401 | bcrypt verification for seeded admin |
 | TC-AUTH-003 | AUTH-004 | POST `/auth/login` (empty fields) | 401 | Login requires non-empty username/password |
-| TC-AUTH-004 | AUTH-005 | POST `/auth/login` (username `ADMIN`) | 200 | Case-insensitive username lookup (PD-09) |
+| TC-AUTH-004 | AUTH-005 | POST `/auth/login` (username `ADMIN`) | 200 | Case-insensitive username lookup with correct password |
 | TC-AUTH-005 | AUTH-002 | GET `/auth/me` | 200 + user profile | FR-AUTH-005, A-03 |
 | TC-AUTH-006 | AUTH-007 | POST `/auth/logout` | 200 empty body | FR-AUTH-004 token revocation |
 | TC-AUTH-007 | AUTH-006 | GET `/users` (no token) | 401 | AR-01, FR-AUTH-003 |
@@ -78,7 +82,8 @@ value,
 |----|-----------------|---------------|----------|-----------|
 | TC-USER-001 | USER-001 | GET `/users` | 200 array | FR-USER-001 list users |
 | TC-USER-002 | USER-002 | POST `/users` | 200 + user object | FR-USER-003 create with README fields |
-| TC-USER-003 | USER-003 | POST `/auth/login` (new dev) | 200 | PD-09: users created via API can login |
+| TC-USER-003 | USER-003 | POST `/auth/login` (new dev) | 200 | PD-09: first login enrolls password |
+| TC-USER-003b | USER-003b | POST `/auth/login` (new dev, wrong password) | 401 | PD-09: subsequent login verifies bcrypt |
 | TC-USER-004 | USER-004 | GET `/users/:userId` | 200 | FR-USER-001 get by id |
 | TC-USER-005 | USER-005 | GET `/users/999999` | 404 | FR-USER-006 deleted/unknown user |
 | TC-USER-006 | USER-006 | POST `/users/update/:userId` | 200 empty body | FR-USER-004 update fullName/role |

@@ -266,7 +266,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"ADMIN\",\n  \"password\": \"any\"\n}",
+              "raw": "{\n  \"username\": \"ADMIN\",\n  \"password\": \"{{adminPassword}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -286,9 +286,56 @@
             "auth": {
               "type": "noauth"
             },
-            "description": "TC-AUTH-004: Username match is case-insensitive (PD-09)."
+            "description": "TC-AUTH-004: Username match is case-insensitive with correct password."
           },
-          "description": "TC-AUTH-004: Username match is case-insensitive (PD-09)."
+          "description": "TC-AUTH-004: Username match is case-insensitive with correct password."
+        },
+        {
+          "name": "AUTH-011 Login wrong admin password → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "TC-AUTH-002b: Seeded admin password verified with bcrypt."
+          },
+          "description": "TC-AUTH-002b: Seeded admin password verified with bcrypt."
         },
         {
           "name": "AUTH-006 Protected route without token → 401",
@@ -699,7 +746,7 @@
           "description": "TC-USER-002: Create user with README fields."
         },
         {
-          "name": "USER-003 Login as new DEVELOPER",
+          "name": "USER-003 Login as new DEVELOPER (first login enrolls password)",
           "event": [
             {
               "listen": "test",
@@ -734,7 +781,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{developerUsername}}\",\n  \"password\": \"anypassword\"\n}",
+              "raw": "{\n  \"username\": \"{{developerUsername}}\",\n  \"password\": \"{{developerPassword}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -754,9 +801,56 @@
             "auth": {
               "type": "noauth"
             },
-            "description": "TC-USER-003: PD-09 login by username existence."
+            "description": "TC-USER-003: PD-09 first login enrolls password."
           },
-          "description": "TC-USER-003: PD-09 login by username existence."
+          "description": "TC-USER-003: PD-09 first login enrolls password."
+        },
+        {
+          "name": "USER-003b Login as new DEVELOPER wrong password → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{developerUsername}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "TC-USER-003b: Subsequent login verifies bcrypt."
+          },
+          "description": "TC-USER-003b: Subsequent login verifies bcrypt."
         },
         {
           "name": "USER-004 GET /users/:userId",
@@ -5724,7 +5818,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"deletable_{{testRunSuffix}}\",\n  \"password\": \"x\"\n}",
+              "raw": "{\n  \"username\": \"deletable_{{testRunSuffix}}\",\n  \"password\": \"{{developerPassword}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

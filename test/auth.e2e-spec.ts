@@ -14,14 +14,21 @@ describe('Auth (e2e)', () => {
     await app.close();
   });
 
-  it('POST /auth/login returns token for seeded admin', async () => {
+  it('POST /auth/login returns token for seeded admin with correct password', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ username: 'admin', password: 'any-password' })
+      .send({ username: 'admin', password: 'admin123' })
       .expect(200);
     expect(res.body.accessToken).toBeDefined();
     expect(res.body.tokenType).toBe('Bearer');
     expect(res.body.expiresIn).toBe(3600);
+  });
+
+  it('POST /auth/login returns 401 for seeded admin with wrong password', () => {
+    return request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ username: 'admin', password: 'wrong-password' })
+      .expect(401);
   });
 
   it('POST /auth/login returns 401 for unknown username', () => {
@@ -39,7 +46,7 @@ describe('Auth (e2e)', () => {
   });
 
   it('GET /auth/me returns profile with valid JWT', async () => {
-    const token = await loginAs(app, 'admin');
+    const token = await loginAs(app, 'admin', 'admin123');
     const res = await request(app.getHttpServer())
       .get('/auth/me')
       .set(authHeader(token))
@@ -53,7 +60,7 @@ describe('Auth (e2e)', () => {
   });
 
   it('POST /auth/logout invalidates token', async () => {
-    const token = await loginAs(app, 'admin');
+    const token = await loginAs(app, 'admin', 'admin123');
     await request(app.getHttpServer())
       .post('/auth/logout')
       .set(authHeader(token))
