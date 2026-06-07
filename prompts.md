@@ -1,7 +1,9 @@
 # AI Usage Documentation
 
 ## Model Used
-Cursor with [write here the model name shown in Cursor]
+Cursor (Composer 2.5)
+Spec Kit (Spec-Driven Development workflow)
+ChatGPT (OpenAI GPT-5.5)
 
 ## Main Prompts
 
@@ -253,8 +255,7 @@ isOverdue timing – document the exact lifecycle and trigger conditions.
 
 After completing the review, perform another gap-analysis pass and report any additional bugs, inconsistencies, validation gaps, security issues, or spec/API mismatches discovered.
 
-### Testing Strategy Prompt
-[paste testing prompt]
+---
 
 Execute the full implementation plan from `specs/001-issueflow-backend/tasks.md`:
 
